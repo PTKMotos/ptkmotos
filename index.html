@@ -18,18 +18,12 @@
 <script type="text/babel">
 const { useState, useEffect } = React;
 const MASTER_KEY = "$2a$10$L4xwan84Zj7itaLh2cZ.jOsmp0rhnIOb1bbX50QA1PcY3sngbuzP.";
-const HEADERS = {"Content-Type":"application/json","X-Master-Key":MASTER_KEY,"X-Bin-Private":"false"};
-async function getOrCreateBin(name,initial){
-  const cached=localStorage.getItem("ptk_bin_"+name);
-  if(cached)return cached;
-  const res=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",headers:{...HEADERS,"X-Bin-Name":name},body:JSON.stringify(initial)});
-  const data=await res.json();
-  const id=data.metadata?.id;
-  if(id)localStorage.setItem("ptk_bin_"+name,id);
-  return id;
-}
+const BIN_NAME_MOTOS="ptk_motos",BIN_NAME_FIN="ptk_financeiro";
+const HEADERS={"Content-Type":"application/json","X-Master-Key":MASTER_KEY,"X-Bin-Private":"false"};
+async function getOrCreateBin(name,initial){const cached=localStorage.getItem("ptk_bin_"+name);if(cached)return cached;const res=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",headers:{...HEADERS,"X-Bin-Name":name},body:JSON.stringify(initial)});const data=await res.json();const id=data.metadata?.id;if(id)localStorage.setItem("ptk_bin_"+name,id);return id;}
 async function readBin(id){const res=await fetch(`https://api.jsonbin.io/v3/b/${id}/latest`,{headers:{"X-Master-Key":MASTER_KEY}});const d=await res.json();return d.record;}
-async function writeBin(id,data){await fetch(`https://api.jsonbin.io/v3/b/${id}`,{method:"PUT",headers:HEADERS,body:JSON.stringify(data)});}const fmt=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+async function writeBin(id,data){await fetch(`https://api.jsonbin.io/v3/b/${id}`,{method:"PUT",headers:HEADERS,body:JSON.stringify(data)});}
+const fmt=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const fmtDate=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -38,12 +32,7 @@ const CHECKLIST_ITEMS=["Documento OK","Sem Multas","IPVA Pago","Licenciamento Pa
 const FORMAS_PGTO=["Pix","Dinheiro","Transferência","Financiamento","Cheque","Cartão","Outro"];
 const STATUS_CORES={"Em Estoque":{bg:"#e8f5e9",text:"#2e7d32"},"Vendida":{bg:"#fce4ec",text:"#b71c1c"},"Em Reforma":{bg:"#fff8e1",text:"#f57f17"}};
 const CATEGORIAS_DESP=["Reforma/Mecânica","Documentação","Transporte","Limpeza/Estética","Outros"];
-const lbl={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
-const inp={border:"1.5px solid #ddd",borderRadius:8,padding:"8px 10px",fontSize:14,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box"};
-const Field=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><input {...p} style={{...inp,...p.style}}/></div>);
-const Sel=({label,children,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><select {...p} style={{...inp,...p.style}}>{children}</select></div>);
-const TA=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><textarea {...p} style={{...inp,resize:"vertical",minHeight:64,...p.style}}/></div>);
-function DocUpload({label,value,onChange}){
+const CATS_CONTAS=["Anúncios","Empréstimos","Aluguel","Despesas Loja","Sistemas","Outros"];function DocUpload({label,value,onChange}){
   const toB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res({name:f.name,type:f.type,data:r.result});r.onerror=rej;r.readAsDataURL(f);});
   const handle=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>3*1024*1024){alert("Máx 3MB");return;}onChange(await toB64(f));};
   return(<div style={{display:"flex",flexDirection:"column",gap:6}}><label style={lbl}>{label}</label>
@@ -57,8 +46,8 @@ function DocUpload({label,value,onChange}){
         <a href={value.data} download={value.name} style={{fontSize:11,color:"#1565c0",textDecoration:"none",fontWeight:600,flex:1}}>⬇️ Baixar</a>
         <button onClick={()=>onChange(null)} style={{border:"none",background:"none",color:"#c62828",cursor:"pointer",fontSize:11,fontWeight:700}}>✕ Remover</button>
       </div></div>)}
-  </div>);
-}function CustosForm({custos=[],onChange}){
+  </div>);}
+function CustosForm({custos=[],onChange}){
   const [desc,setDesc]=useState("");const [cat,setCat]=useState(CATEGORIAS_DESP[0]);
   const [val,setVal]=useState("");const [data,setData]=useState(today());
   const add=()=>{if(!val||!desc)return;onChange([...custos,{id:uid(),desc,cat,val:Number(val),data}]);setDesc("");setVal("");};
@@ -288,21 +277,108 @@ function Financeiro({motos,financeiro,onAddFin,onRemFin}){
     </div>)}
     {porMoto.length===0&&(<div style={{textAlign:"center",padding:"40px 0",color:"#aaa"}}><p style={{fontSize:36}}>📊</p><p style={{fontWeight:600}}>Ainda não há motos vendidas para analisar</p></div>)}
   </div>);}
-function App(){
-  const [motos,setMotos]=useState([]);const [financeiro,setFinanceiro]=useState([]);
-  const [binMotos,setBinMotos]=useState(null);const [binFin,setBinFin]=useState(null);
+function Contas({contas,onSave}){
+  const [catAtiva,setCatAtiva]=useState("Todas");
+  const [novaDesc,setNovaDesc]=useState("");const [novaCat,setNovaCat]=useState(CATS_CONTAS[0]);
+  const [novaVal,setNovaVal]=useState("");const [novaVenc,setNovaVenc]=useState("");
+  const [novaPgto,setNovaPgto]=useState("");const [novaFixa,setNovaFixa]=useState(false);
+  const add=()=>{if(!novaDesc||!novaVal)return;const item={id:uid(),desc:novaDesc,cat:novaCat,val:Number(novaVal),vencimento:novaVenc,dataPgto:novaPgto,pago:!!novaPgto,fixa:novaFixa};onSave([...contas,item]);setNovaDesc("");setNovaVal("");setNovaVenc("");setNovaPgto("");setNovaFixa(false);};
+  const toggle=(id)=>onSave(contas.map(c=>c.id===id?{...c,pago:!c.pago,dataPgto:!c.pago?today():""}:c));
+  const rem=(id)=>{if(!confirm("Remover esta conta?"))return;onSave(contas.filter(c=>c.id!==id));};
+  const upd=(id,k,v)=>onSave(contas.map(c=>c.id===id?{...c,[k]:v}:c));
+  const filtradas=catAtiva==="Todas"?contas:contas.filter(c=>c.cat===catAtiva);
+  const totalGeral=contas.reduce((s,c)=>s+Number(c.val),0);
+  const totalPago=contas.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);
+  const totalPend=contas.filter(c=>!c.pago).reduce((s,c)=>s+Number(c.val),0);
+  const porCat=CATS_CONTAS.map(cat=>({cat,total:contas.filter(c=>c.cat===cat).reduce((s,c)=>s+Number(c.val),0),pago:contas.filter(c=>c.cat===cat&&c.pago).reduce((s,c)=>s+Number(c.val),0)})).filter(x=>x.total>0);
+  const maxVal=Math.max(...porCat.map(x=>x.total),1);
+  return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+      {[["Total",totalGeral,"#37474f"],["Pago",totalPago,"#2e7d32"],["Pendente",totalPend,"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:c}}>{fmt(v)}</p></div>))}
+    </div>
+    {porCat.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
+      <p style={{margin:"0 0 14px",fontWeight:700,fontSize:14}}>Gastos por categoria</p>
+      {porCat.map(x=>(<div key={x.cat} style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+          <span style={{fontSize:13,fontWeight:600,color:CORES_CATS[x.cat]||"#333"}}>{x.cat}</span>
+          <span style={{fontSize:13,fontWeight:700}}>{fmt(x.total)}</span>
+        </div>
+        <div style={{background:"#f0f0f0",borderRadius:20,height:12,overflow:"hidden",position:"relative"}}>
+          <div style={{width:`${(x.total/maxVal)*100}%`,height:"100%",background:CORES_CATS[x.cat]||"#888",borderRadius:20,opacity:.3,position:"absolute"}}/>
+          <div style={{width:`${(x.pago/maxVal)*100}%`,height:"100%",background:CORES_CATS[x.cat]||"#888",borderRadius:20,position:"absolute"}}/>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
+          <span style={{fontSize:11,color:"#aaa"}}>Pago: {fmt(x.pago)}</span>
+          <span style={{fontSize:11,color:"#c62828"}}>Pendente: {fmt(x.total-x.pago)}</span>
+        </div>
+      </div>))}
+    </div>)}
+    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>+ Nova conta</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div style={{gridColumn:"1/-1"}}><Field label="Descrição" value={novaDesc} onChange={e=>setNovaDesc(e.target.value)} placeholder="Ex: OLX, Nubank..."/></div>
+        <Sel label="Categoria" value={novaCat} onChange={e=>setNovaCat(e.target.value)}>{CATS_CONTAS.map(c=><option key={c}>{c}</option>)}</Sel>
+        <Field label="Valor (R$)" type="number" value={novaVal} onChange={e=>setNovaVal(e.target.value)}/>
+        <Field label="Vencimento" type="date" value={novaVenc} onChange={e=>setNovaVenc(e.target.value)}/>
+        <Field label="Data Pagamento" type="date" value={novaPgto} onChange={e=>setNovaPgto(e.target.value)}/>
+        <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,cursor:"pointer",gridColumn:"1/-1"}}>
+          <input type="checkbox" checked={novaFixa} onChange={e=>setNovaFixa(e.target.checked)} style={{width:16,height:16,accentColor:"#c62828"}}/>Conta fixa (recorrente)
+        </label>
+      </div>
+      <button onClick={add} style={{marginTop:12,padding:"9px 20px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>Adicionar</button>
+    </div>
+    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+      {["Todas",...CATS_CONTAS].map(c=>(<button key={c} onClick={()=>setCatAtiva(c)} style={{padding:"6px 14px",border:"1.5px solid",borderColor:catAtiva===c?(CORES_CATS[c]||"#c62828"):"#ddd",borderRadius:20,background:catAtiva===c?(CORES_CATS[c]||"#c62828"):"#fff",color:catAtiva===c?"#fff":"#555",fontSize:12,fontWeight:600,cursor:"pointer"}}>{c}</button>))}
+    </div>
+    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}>
+      {filtradas.length===0&&<p style={{padding:20,color:"#aaa",fontSize:13,textAlign:"center"}}>Nenhuma conta nesta categoria.</p>}
+      {filtradas.map(c=>(<div key={c.id} style={{padding:"12px 16px",borderBottom:"1px solid #f5f5f5",background:c.pago?"#f9fdf9":"#fff"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+          <button onClick={()=>toggle(c.id)} style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${c.pago?"#43a047":"#ddd"}`,background:c.pago?"#43a047":"#fff",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>{c.pago?"✓":""}</button>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div>
+                <span style={{fontWeight:700,fontSize:14,color:c.pago?"#888":"#1a1a1a",textDecoration:c.pago?"line-through":"none"}}>{c.desc}</span>
+                {c.fixa&&<span style={{marginLeft:6,fontSize:10,background:"#e3f2fd",color:"#1565c0",padding:"2px 6px",borderRadius:10,fontWeight:700}}>FIXA</span>}
+                <span style={{marginLeft:6,fontSize:10,background:(CORES_CATS[c.cat]||"#888")+"22",color:CORES_CATS[c.cat]||"#333",padding:"2px 6px",borderRadius:10,fontWeight:700}}>{c.cat}</span>
+              </div>
+              <span style={{fontWeight:800,fontSize:15,color:c.pago?"#2e7d32":"#c62828"}}>{fmt(c.val)}</span>
+            </div>
+            <div style={{display:"flex",gap:16,marginTop:6,flexWrap:"wrap"}}>
+              <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                <span style={{fontSize:10,color:"#aaa",fontWeight:700,textTransform:"uppercase"}}>Vencimento</span>
+                <input type="date" value={c.vencimento||""} onChange={e=>upd(c.id,"vencimento",e.target.value)} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none",background:"#fafafa"}}/>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                <span style={{fontSize:10,color:"#aaa",fontWeight:700,textTransform:"uppercase"}}>Valor</span>
+                <input type="number" value={c.val} onChange={e=>upd(c.id,"val",Number(e.target.value))} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none",background:"#fafafa",width:90}}/>
+              </div>
+              {c.pago&&(<div style={{display:"flex",flexDirection:"column",gap:2}}>
+                <span style={{fontSize:10,color:"#aaa",fontWeight:700,textTransform:"uppercase"}}>Pago em</span>
+                <input type="date" value={c.dataPgto||""} onChange={e=>upd(c.id,"dataPgto",e.target.value)} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none",background:"#fafafa"}}/>
+              </div>)}
+            </div>
+          </div>
+          <button onClick={()=>rem(c.id)} style={{border:"none",background:"none",color:"#ddd",cursor:"pointer",fontSize:16,flexShrink:0}}>✕</button>
+        </div>
+      </div>))}
+    </div>
+  </div>);}function App(){
+  const [motos,setMotos]=useState([]);const [financeiro,setFinanceiro]=useState([]);const [contas,setContas]=useState([]);
+  const [binMotos,setBinMotos]=useState(null);const [binFin,setBinFin]=useState(null);const [binContas,setBinContas]=useState(null);
   const [tela,setTela]=useState("dashboard");const [editando,setEditando]=useState(null);
   const [busca,setBusca]=useState("");const [filtroStatus,setFiltroStatus]=useState("Todos");
   const [loading,setLoading]=useState(true);const [salvando,setSalvando]=useState(false);const [erro,setErro]=useState(null);
-  useEffect(()=>{async function init(){try{const[bm,bf]=await Promise.all([getOrCreateBin("ptk_motos",[]),getOrCreateBin("ptk_financeiro",[])]);setBinMotos(bm);setBinFin(bf);const[m,f]=await Promise.all([readBin(bm),readBin(bf)]);setMotos(Array.isArray(m)?m:[]);setFinanceiro(Array.isArray(f)?f:[]);}catch(e){setErro("Erro ao conectar. Verifique sua conexão.");}finally{setLoading(false);}}init();},[]);
+  useEffect(()=>{async function init(){try{const[bm,bf,bc]=await Promise.all([getOrCreateBin(BIN_NAME_MOTOS,[]),getOrCreateBin(BIN_NAME_FIN,[]),getOrCreateBin("ptk_contas",[])]);setBinMotos(bm);setBinFin(bf);setBinContas(bc);const[m,f,c]=await Promise.all([readBin(bm),readBin(bf),readBin(bc)]);setMotos(Array.isArray(m)?m:[]);setFinanceiro(Array.isArray(f)?f:[]);setContas(Array.isArray(c)?c:[]);}catch(e){setErro("Erro ao conectar. Verifique sua conexão.");}finally{setLoading(false);}}init();},[]);
   const salvarMotos=async nova=>{setSalvando(true);setMotos(nova);try{await writeBin(binMotos,nova);}catch{alert("Erro ao salvar.");}setSalvando(false);};
   const salvarFin=async nova=>{setSalvando(true);setFinanceiro(nova);try{await writeBin(binFin,nova);}catch{alert("Erro ao salvar.");}setSalvando(false);};
+  const salvarContas=async nova=>{setSalvando(true);setContas(nova);try{await writeBin(binContas,nova);}catch{alert("Erro ao salvar.");}setSalvando(false);};
   const salvarMoto=async moto=>{const nova=editando?motos.map(m=>m.id===moto.id?moto:m):[...motos,moto];await salvarMotos(nova);setTela("estoque");setEditando(null);};
   const deletarMoto=async id=>{if(!confirm("Remover esta moto?"))return;await salvarMotos(motos.filter(m=>m.id!==id));setTela("estoque");setEditando(null);};
   const addFin=async item=>await salvarFin([...financeiro,item]);
   const remFin=async id=>await salvarFin(financeiro.filter(f=>f.id!==id));
   const motosFiltradas=motos.filter(m=>{const q=busca.toLowerCase();const match=!q||[m.marca,m.modelo,m.placa,m.vendedorNome,m.compradorNome,m.chassi].some(v=>(v||"").toLowerCase().includes(q));return match&&(filtroStatus==="Todos"||m.status===filtroStatus);});
-  const NAV=[{id:"dashboard",icon:"📊",label:"Painel"},{id:"estoque",icon:"🏍️",label:"Estoque"},{id:"financeiro",icon:"💰",label:"Financeiro"},{id:"relatorios",icon:"📈",label:"Relatórios"}];
+  const NAV=[{id:"dashboard",icon:"📊",label:"Painel"},{id:"estoque",icon:"🏍️",label:"Estoque"},{id:"contas",icon:"🧾",label:"Contas"},{id:"financeiro",icon:"💰",label:"Financeiro"},{id:"relatorios",icon:"📈",label:"Relatórios"}];
   if(loading)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:12}}><span style={{fontSize:40}}>🏍️</span><p style={{color:"#c62828",fontWeight:700,fontSize:16}}>Conectando ao banco de dados...</p></div>);
   if(erro)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:12,padding:20,textAlign:"center"}}><span style={{fontSize:40}}>⚠️</span><p style={{color:"#c62828",fontWeight:700}}>{erro}</p><button onClick={()=>window.location.reload()} style={{padding:"10px 20px",background:"#c62828",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Tentar novamente</button></div>);
   return(<div style={{fontFamily:"system-ui,-apple-system,sans-serif",background:"#f7f7f7",minHeight:"100vh"}}>
@@ -324,6 +400,7 @@ function App(){
         {motosFiltradas.length===0?<div style={{textAlign:"center",padding:"40px 0",color:"#aaa"}}><p style={{fontSize:40}}>🏍️</p><p style={{fontWeight:600}}>{busca?"Nenhuma moto encontrada":"Nenhuma moto cadastrada"}</p></div>
         :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:14}}>{motosFiltradas.map(m=><MotoCard key={m.id} moto={m} onClick={()=>{setEditando(m);setTela("editar");}}/>)}</div>}
       </div>)}
+      {tela==="contas"&&<Contas contas={contas} onSave={salvarContas}/>}
       {tela==="financeiro"&&<Financeiro motos={motos} financeiro={financeiro} onAddFin={addFin} onRemFin={remFin}/>}
       {tela==="relatorios"&&<Relatorios motos={motos}/>}
       {tela==="nova"&&(<div style={{background:"#fff",borderRadius:16,padding:24,border:"1.5px solid #eee"}}><h2 style={{margin:"0 0 20px",fontSize:18}}>Cadastrar Nova Moto</h2><MotoForm onSave={salvarMoto} onCancel={()=>setTela("estoque")}/></div>)}
@@ -340,3 +417,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
+const CORES_CATS={"Anúncios":"#1565c0","Empréstimos":"#b71c1c","Aluguel":"#e65100","Despesas Loja":"#2e7d32","Sistemas":"#6a1b9a","Outros":"#37474f"};
+const lbl={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
+const inp={border:"1.5px solid #ddd",borderRadius:8,padding:"8px 10px",fontSize:14,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box"};
+const Field=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><input {...p} style={{...inp,...p.style}}/></div>);
+const Sel=({label,children,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><select {...p} style={{...inp,...p.style}}>{children}</select></div>);
+const TA=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><textarea {...p} style={{...inp,resize:"vertical",minHeight:64,...p.style}}/></div>);
