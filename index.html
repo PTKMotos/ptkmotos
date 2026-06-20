@@ -14,15 +14,19 @@
 <script type="text/babel">
 const{useState,useEffect}=React;
 const MK="$2a$10$L4xwan84Zj7itaLh2cZ.jOsmp0rhnIOb1bbX50QA1PcY3sngbuzP.";
-const BNM="ptk_motos",BNF="ptk_financeiro",BNC="ptk_contas";
+const BM="6a367ceada38895dfee27f90";
+const BF="6a367da3f5f4af5e29140640";
+const BC="6a367dd7da38895dfee282c0";
 const HD={"Content-Type":"application/json","X-Master-Key":MK,"X-Bin-Private":"false"};
-async function gob(name,init){
-  const k="ptk_bin_"+name,c=localStorage.getItem(k);if(c)return c;
-  const r=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",headers:{...HD,"X-Bin-Name":name},body:JSON.stringify(init)});
-  const d=await r.json();const id=d.metadata?.id;if(id)localStorage.setItem(k,id);return id;
+async function rb(id){
+  const r=await fetch("https://api.jsonbin.io/v3/b/"+id+"/latest",{headers:{"X-Master-Key":MK}});
+  const d=await r.json();
+  const v=d.record;
+  return Array.isArray(v)?v.filter(x=>x&&Object.keys(x).length>0):[];
 }
-async function rb(id){const r=await fetch("https://api.jsonbin.io/v3/b/"+id+"/latest",{headers:{"X-Master-Key":MK}});const d=await r.json();return d.record;}
-async function wb(id,data){await fetch("https://api.jsonbin.io/v3/b/"+id,{method:"PUT",headers:HD,body:JSON.stringify(data)});}
+async function wb(id,data){
+  await fetch("https://api.jsonbin.io/v3/b/"+id,{method:"PUT",headers:HD,body:JSON.stringify(data)});
+}
 const fm=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const fd=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
 const td=()=>new Date().toISOString().slice(0,10);
@@ -32,8 +36,8 @@ const CL=["Documento OK","Sem Multas","IPVA Pago","Licenciamento Pago","Chave Re
 const FP=["Pix","Dinheiro","Transferencia","Financiamento","Cheque","Cartao","Outro"];
 const SC={"Em Estoque":{bg:"#e8f5e9",tx:"#2e7d32"},"Vendida":{bg:"#fce4ec",tx:"#b71c1c"},"Em Reforma":{bg:"#fff8e1",tx:"#f57f17"}};
 const CD=["Reforma","Documentacao","Transporte","Limpeza","Outros"];
-const CC=["Anuncios","Emprestimos","Aluguel","Despesas Loja","Sistemas","Outros"];
-const CR={"Anuncios":"#1565c0","Emprestimos":"#b71c1c","Aluguel":"#e65100","Despesas Loja":"#2e7d32","Sistemas":"#6a1b9a","Outros":"#37474f"};
+const CC=["Anuncios","Emprestimos","Aluguel","Despesas Loja","Sistemas","Retirada Socios","Despesas Motos Pos Vendas","Despesas Motos Arrumar para Venda","Outros"];
+const CR={"Anuncios":"#1565c0","Emprestimos":"#b71c1c","Aluguel":"#e65100","Despesas Loja":"#2e7d32","Sistemas":"#6a1b9a","Retirada Socios":"#00838f","Despesas Motos Pos Vendas":"#f57f17","Despesas Motos Arrumar para Venda":"#558b2f","Outros":"#37474f"};
 const lb={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
 const ip={border:"1.5px solid #ddd",borderRadius:8,padding:"8px 10px",fontSize:14,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box"};
 const Fi=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lb}>{label}</label><input {...p} style={{...ip,...p.style}}/></div>);
@@ -74,13 +78,14 @@ function Cf({custos=[],onChange}){
       </div>))}
       <div style={{padding:"9px 12px",background:"#f9f9f9",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between"}}><span>Total</span><span style={{color:"#c62828"}}>{fm(tot)}</span></div>
     </div>)}
-  </div>);}function Mf({initial,onSave,onCancel}){
+  </div>);}
+function Mf({initial,onSave,onCancel}){
   const bl={id:uid(),status:"Em Estoque",dataCadastro:td(),vendedorNome:"",vendedorCPF:"",vendedorRG:"",vendedorNascimento:"",vendedorEndereco:"",vendedorBairro:"",vendedorCEP:"",vendedorCidade:"",vendedorTelefone:"",vendedorCNH:null,vendedorComprovante:null,marca:"",modelo:"",placa:"",ano:"",chassi:"",renavam:"",cor:"",motor:"",km:"",valorCompra:"",formaPgtoCompra:"Pix",dataCompra:td(),checklist:Object.fromEntries(CL.map(i=>[i,false])),observacoes:"",custos:[],compradorNome:"",compradorCPF:"",compradorTelefone:"",compradorCNH:null,compradorComprovante:null,valorVenda:"",formaPgtoVenda:"Pix",dataVenda:"",obsVenda:""};
   const[f,setF]=useState(initial||bl);
   const st=(k,v)=>setF(p=>({...p,[k]:v}));
   const sk=(item,v)=>setF(p=>({...p,checklist:{...p.checklist,[item]:v}}));
   const[tab,setTab]=useState("compra");
-  const ex=()=>{const cl=CL.map(i=>`${f.checklist[i]?"[X]":"[ ]"} ${i}`).join("\n");const tx=`PTK MOTOS CHECK LIST\nDATA: ${fd(f.dataCompra)}\nNome: ${f.vendedorNome}\nCPF: ${f.vendedorCPF} RG: ${f.vendedorRG}\nMarca: ${f.marca} Modelo: ${f.modelo}\nPlaca: ${f.placa} Ano: ${f.ano}\nChassi: ${f.chassi}\nRenavam: ${f.renavam}\nKM: ${f.km}\nValor: ${fm(f.valorCompra)}\nForma: ${f.formaPgtoCompra}\n\nCHECK LIST\n${cl}\n\nOBS: ${f.observacoes||"—"}`;const a=document.createElement("a");a.href="data:text/plain;charset=utf-8,"+encodeURIComponent(tx);a.download="checklist_"+( f.placa||"moto")+".txt";a.click();};
+  const ex=()=>{const cl=CL.map(i=>`${f.checklist[i]?"[X]":"[ ]"} ${i}`).join("\n");const tx="PTK MOTOS CHECK LIST\nDATA: "+fd(f.dataCompra)+"\nNome: "+f.vendedorNome+"\nCPF: "+f.vendedorCPF+" RG: "+f.vendedorRG+"\nMarca: "+f.marca+" Modelo: "+f.modelo+"\nPlaca: "+f.placa+" Ano: "+f.ano+"\nChassi: "+f.chassi+"\nRenavam: "+f.renavam+"\nKM: "+f.km+"\nValor: "+fm(f.valorCompra)+"\n\nCHECK LIST\n"+cl+"\n\nOBS: "+(f.observacoes||"—");const a=document.createElement("a");a.href="data:text/plain;charset=utf-8,"+encodeURIComponent(tx);a.download="checklist_"+(f.placa||"moto")+".txt";a.click();};
   const Tb=({id,label})=>(<button onClick={()=>setTab(id)} style={{padding:"8px 14px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===id?"#c62828":"transparent",color:tab===id?"#fff":"#666",whiteSpace:"nowrap"}}>{label}</button>);
   const tc=(f.custos||[]).reduce((s,c)=>s+Number(c.val),0);
   const ll=f.valorVenda?Number(f.valorVenda)-Number(f.valorCompra||0)-tc:null;
@@ -100,7 +105,7 @@ function Cf({custos=[],onChange}){
         <div style={{gridColumn:"1/-1"}}><Fi label="Endereco" value={f.vendedorEndereco} onChange={e=>st("vendedorEndereco",e.target.value)}/></div>
         <Fi label="Bairro" value={f.vendedorBairro} onChange={e=>st("vendedorBairro",e.target.value)}/>
         <Fi label="CEP" value={f.vendedorCEP} onChange={e=>st("vendedorCEP",e.target.value)}/>
-        <Fi label="Cidade/UF" value={f.vendedorCidade} onChange={e=>st("vendedorCidade",e.target.value)}/>
+        <Fi label="Cidade UF" value={f.vendedorCidade} onChange={e=>st("vendedorCidade",e.target.value)}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
         <Du label="CNH Vendedor" value={f.vendedorCNH} onChange={v=>st("vendedorCNH",v)}/>
@@ -349,19 +354,16 @@ function Co({contas,onSave}){
     </div>
   </div>);}function App(){
   const[motos,setMotos]=useState([]);const[fin,setFin]=useState([]);const[contas,setContas]=useState([]);
-  const[bm,setBm]=useState(null);const[bf,setBf]=useState(null);const[bc,setBc]=useState(null);
   const[tela,setTela]=useState("dashboard");const[edit,setEdit]=useState(null);
   const[busca,setBusca]=useState("");const[fst,setFst]=useState("Todos");
   const[load,setLoad]=useState(true);const[salv,setSalv]=useState(false);const[erro,setErro]=useState(null);
   useEffect(()=>{async function init(){try{
-    const[a,b,c]=await Promise.all([gob(BNM,[]),gob(BNF,[]),gob(BNC,[])]);
-    setBm(a);setBf(b);setBc(c);
-    const[m,f,co]=await Promise.all([rb(a),rb(b),rb(c)]);
-    setMotos(Array.isArray(m)?m:[]);setFin(Array.isArray(f)?f:[]);setContas(Array.isArray(co)?co:[]);
+    const[m,f,c]=await Promise.all([rb(BM),rb(BF),rb(BC)]);
+    setMotos(m);setFin(f);setContas(c);
   }catch(e){setErro("Erro ao conectar.");}finally{setLoad(false);}}init();},[]);
-  const sm=async n=>{setSalv(true);setMotos(n);try{await wb(bm,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
-  const sf=async n=>{setSalv(true);setFin(n);try{await wb(bf,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
-  const sc=async n=>{setSalv(true);setContas(n);try{await wb(bc,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
+  const sm=async n=>{setSalv(true);setMotos(n);try{await wb(BM,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
+  const sf=async n=>{setSalv(true);setFin(n);try{await wb(BF,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
+  const sc=async n=>{setSalv(true);setContas(n);try{await wb(BC,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
   const savMoto=async m=>{const n=edit?motos.map(x=>x.id===m.id?m:x):[...motos,m];await sm(n);setTela("estoque");setEdit(null);};
   const delMoto=async id=>{if(!confirm("Remover?"))return;await sm(motos.filter(m=>m.id!==id));setTela("estoque");setEdit(null);};
   const mf=motos.filter(m=>{const q=busca.toLowerCase();const ok=!q||[m.marca,m.modelo,m.placa,m.vendedorNome,m.compradorNome].some(v=>(v||"").toLowerCase().includes(q));return ok&&(fst==="Todos"||m.status===fst);});
