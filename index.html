@@ -3,413 +3,400 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>PTK Motos — Gestão Interna</title>
+<title>PTK Motos</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui,-apple-system,sans-serif;background:#f7f7f7;min-height:100vh}
-  input,select,textarea{font-family:inherit}
-</style>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:system-ui,sans-serif;background:#f7f7f7}input,select,textarea{font-family:inherit}</style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect } = React;
-const MASTER_KEY = "$2a$10$L4xwan84Zj7itaLh2cZ.jOsmp0rhnIOb1bbX50QA1PcY3sngbuzP.";
-const BIN_NAME_MOTOS="ptk_motos",BIN_NAME_FIN="ptk_financeiro";
-const HEADERS={"Content-Type":"application/json","X-Master-Key":MASTER_KEY,"X-Bin-Private":"false"};
-async function getOrCreateBin(name,initial){const cached=localStorage.getItem("ptk_bin_"+name);if(cached)return cached;const res=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",headers:{...HEADERS,"X-Bin-Name":name},body:JSON.stringify(initial)});const data=await res.json();const id=data.metadata?.id;if(id)localStorage.setItem("ptk_bin_"+name,id);return id;}
-async function readBin(id){const res=await fetch(`https://api.jsonbin.io/v3/b/${id}/latest`,{headers:{"X-Master-Key":MASTER_KEY}});const d=await res.json();return d.record;}
-async function writeBin(id,data){await fetch(`https://api.jsonbin.io/v3/b/${id}`,{method:"PUT",headers:HEADERS,body:JSON.stringify(data)});}
-const fmt=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-const fmtDate=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
-const today=()=>new Date().toISOString().slice(0,10);
+const{useState,useEffect}=React;
+const MK="$2a$10$L4xwan84Zj7itaLh2cZ.jOsmp0rhnIOb1bbX50QA1PcY3sngbuzP.";
+const BNM="ptk_motos",BNF="ptk_financeiro",BNC="ptk_contas";
+const HD={"Content-Type":"application/json","X-Master-Key":MK,"X-Bin-Private":"false"};
+async function gob(name,init){
+  const k="ptk_bin_"+name,c=localStorage.getItem(k);if(c)return c;
+  const r=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",headers:{...HD,"X-Bin-Name":name},body:JSON.stringify(init)});
+  const d=await r.json();const id=d.metadata?.id;if(id)localStorage.setItem(k,id);return id;
+}
+async function rb(id){const r=await fetch("https://api.jsonbin.io/v3/b/"+id+"/latest",{headers:{"X-Master-Key":MK}});const d=await r.json();return d.record;}
+async function wb(id,data){await fetch("https://api.jsonbin.io/v3/b/"+id,{method:"PUT",headers:HD,body:JSON.stringify(data)});}
+const fm=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fd=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
+const td=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const mesAno=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR",{month:"short",year:"numeric"}):"";
-const CHECKLIST_ITEMS=["Documento OK","Sem Multas","IPVA Pago","Licenciamento Pago","Chave Reserva","Manual","Pneus Bons","Freios OK","Relação Boa","Motor Sem Vazamentos","Parte Elétrica OK","Suspensão OK","Carenagem OK","Pintura OK","Faróis e Setas OK"];
-const FORMAS_PGTO=["Pix","Dinheiro","Transferência","Financiamento","Cheque","Cartão","Outro"];
-const STATUS_CORES={"Em Estoque":{bg:"#e8f5e9",text:"#2e7d32"},"Vendida":{bg:"#fce4ec",text:"#b71c1c"},"Em Reforma":{bg:"#fff8e1",text:"#f57f17"}};
-const CATEGORIAS_DESP=["Reforma/Mecânica","Documentação","Transporte","Limpeza/Estética","Outros"];
-const CATS_CONTAS=["Anúncios","Empréstimos","Aluguel","Despesas Loja","Sistemas","Outros"];function DocUpload({label,value,onChange}){
-  const toB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res({name:f.name,type:f.type,data:r.result});r.onerror=rej;r.readAsDataURL(f);});
-  const handle=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>3*1024*1024){alert("Máx 3MB");return;}onChange(await toB64(f));};
-  return(<div style={{display:"flex",flexDirection:"column",gap:6}}><label style={lbl}>{label}</label>
+const ma=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR",{month:"short",year:"numeric"}):"";
+const CL=["Documento OK","Sem Multas","IPVA Pago","Licenciamento Pago","Chave Reserva","Manual","Pneus Bons","Freios OK","Relacao Boa","Motor Sem Vazamentos","Parte Eletrica OK","Suspensao OK","Carenagem OK","Pintura OK","Farois e Setas OK"];
+const FP=["Pix","Dinheiro","Transferencia","Financiamento","Cheque","Cartao","Outro"];
+const SC={"Em Estoque":{bg:"#e8f5e9",tx:"#2e7d32"},"Vendida":{bg:"#fce4ec",tx:"#b71c1c"},"Em Reforma":{bg:"#fff8e1",tx:"#f57f17"}};
+const CD=["Reforma","Documentacao","Transporte","Limpeza","Outros"];
+const CC=["Anuncios","Emprestimos","Aluguel","Despesas Loja","Sistemas","Outros"];
+const CR={"Anuncios":"#1565c0","Emprestimos":"#b71c1c","Aluguel":"#e65100","Despesas Loja":"#2e7d32","Sistemas":"#6a1b9a","Outros":"#37474f"};
+const lb={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
+const ip={border:"1.5px solid #ddd",borderRadius:8,padding:"8px 10px",fontSize:14,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box"};
+const Fi=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lb}>{label}</label><input {...p} style={{...ip,...p.style}}/></div>);
+const Se=({label,children,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lb}>{label}</label><select {...p} style={{...ip,...p.style}}>{children}</select></div>);
+const Ta=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lb}>{label}</label><textarea {...p} style={{...ip,resize:"vertical",minHeight:64,...p.style}}/></div>);function Du({label,value,onChange}){
+  const tb=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res({name:f.name,type:f.type,data:r.result});r.onerror=rej;r.readAsDataURL(f);});
+  const h=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>3*1024*1024){alert("Max 3MB");return;}onChange(await tb(f));};
+  return(<div style={{display:"flex",flexDirection:"column",gap:6}}><label style={lb}>{label}</label>
     {!value?(<label style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,border:"2px dashed #ddd",borderRadius:10,padding:"16px 10px",cursor:"pointer",background:"#fafafa",color:"#aaa",fontSize:12}}>
-      <span style={{fontSize:24}}>📎</span><span>Clique para anexar</span><span style={{fontSize:10}}>JPG, PNG ou PDF · máx 3MB</span>
-      <input type="file" accept="image/*,application/pdf" onChange={handle} style={{display:"none"}}/></label>)
+      <span style={{fontSize:24}}>📎</span><span>Clique para anexar</span><span style={{fontSize:10}}>JPG PNG PDF max 3MB</span>
+      <input type="file" accept="image/*,application/pdf" onChange={h} style={{display:"none"}}/></label>)
     :(<div style={{border:"1.5px solid #ddd",borderRadius:10,overflow:"hidden",background:"#fafafa"}}>
       {value.type?.startsWith("image/")&&<img src={value.data} alt="" style={{width:"100%",maxHeight:150,objectFit:"cover",display:"block"}}/>}
       {value.type==="application/pdf"&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px"}}><span style={{fontSize:22}}>📄</span><span style={{fontSize:12,color:"#555",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{value.name}</span></div>}
       <div style={{display:"flex",gap:8,padding:"6px 10px",borderTop:"1px solid #eee"}}>
-        <a href={value.data} download={value.name} style={{fontSize:11,color:"#1565c0",textDecoration:"none",fontWeight:600,flex:1}}>⬇️ Baixar</a>
-        <button onClick={()=>onChange(null)} style={{border:"none",background:"none",color:"#c62828",cursor:"pointer",fontSize:11,fontWeight:700}}>✕ Remover</button>
+        <a href={value.data} download={value.name} style={{fontSize:11,color:"#1565c0",textDecoration:"none",fontWeight:600,flex:1}}>Baixar</a>
+        <button onClick={()=>onChange(null)} style={{border:"none",background:"none",color:"#c62828",cursor:"pointer",fontSize:11,fontWeight:700}}>X Remover</button>
       </div></div>)}
   </div>);}
-function CustosForm({custos=[],onChange}){
-  const [desc,setDesc]=useState("");const [cat,setCat]=useState(CATEGORIAS_DESP[0]);
-  const [val,setVal]=useState("");const [data,setData]=useState(today());
+function Cf({custos=[],onChange}){
+  const[desc,setDesc]=useState("");const[cat,setCat]=useState(CD[0]);const[val,setVal]=useState("");const[data,setData]=useState(td());
   const add=()=>{if(!val||!desc)return;onChange([...custos,{id:uid(),desc,cat,val:Number(val),data}]);setDesc("");setVal("");};
-  const total=custos.reduce((s,c)=>s+Number(c.val),0);
+  const tot=custos.reduce((s,c)=>s+Number(c.val),0);
   return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
     <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>CUSTOS DA MOTO</p>
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-      <div style={{gridColumn:"1/-1"}}><Field label="Descrição" value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Ex: Troca de pneu"/></div>
-      <Sel label="Categoria" value={cat} onChange={e=>setCat(e.target.value)}>{CATEGORIAS_DESP.map(c=><option key={c}>{c}</option>)}</Sel>
-      <Field label="Valor (R$)" type="number" value={val} onChange={e=>setVal(e.target.value)}/>
-      <Field label="Data" type="date" value={data} onChange={e=>setData(e.target.value)}/>
-      <button onClick={add} style={{padding:"9px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>+ Adicionar</button>
+      <div style={{gridColumn:"1/-1"}}><Fi label="Descricao" value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Ex: Troca de pneu"/></div>
+      <Se label="Categoria" value={cat} onChange={e=>setCat(e.target.value)}>{CD.map(c=><option key={c}>{c}</option>)}</Se>
+      <Fi label="Valor R$" type="number" value={val} onChange={e=>setVal(e.target.value)}/>
+      <Fi label="Data" type="date" value={data} onChange={e=>setData(e.target.value)}/>
+      <button onClick={add} style={{padding:"9px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",fontWeight:700,cursor:"pointer"}}>+ Adicionar</button>
     </div>
     {custos.length>0&&(<div style={{border:"1.5px solid #eee",borderRadius:10,overflow:"hidden"}}>
       {custos.map(c=>(<div key={c.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",borderBottom:"1px solid #f5f5f5",fontSize:13}}>
-        <div style={{flex:1}}><span style={{fontWeight:600}}>{c.desc}</span><span style={{color:"#888",fontSize:11,marginLeft:6}}>{c.cat} · {fmtDate(c.data)}</span></div>
-        <span style={{fontWeight:700,color:"#c62828"}}>{fmt(c.val)}</span>
-        <button onClick={()=>onChange(custos.filter(x=>x.id!==c.id))} style={{border:"none",background:"none",color:"#aaa",cursor:"pointer",fontSize:14}}>✕</button>
+        <div style={{flex:1}}><span style={{fontWeight:600}}>{c.desc}</span><span style={{color:"#888",fontSize:11,marginLeft:6}}>{c.cat} {fd(c.data)}</span></div>
+        <span style={{fontWeight:700,color:"#c62828"}}>{fm(c.val)}</span>
+        <button onClick={()=>onChange(custos.filter(x=>x.id!==c.id))} style={{border:"none",background:"none",color:"#aaa",cursor:"pointer",fontSize:14}}>X</button>
       </div>))}
-      <div style={{padding:"9px 12px",background:"#f9f9f9",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between"}}>
-        <span>Total custos</span><span style={{color:"#c62828"}}>{fmt(total)}</span>
-      </div>
+      <div style={{padding:"9px 12px",background:"#f9f9f9",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between"}}><span>Total</span><span style={{color:"#c62828"}}>{fm(tot)}</span></div>
     </div>)}
-  </div>);}
-function MotoForm({initial,onSave,onCancel}){
-  const blank={id:uid(),status:"Em Estoque",dataCadastro:today(),vendedorNome:"",vendedorCPF:"",vendedorRG:"",vendedorNascimento:"",vendedorEndereco:"",vendedorBairro:"",vendedorCEP:"",vendedorCidade:"",vendedorTelefone:"",vendedorCNH:null,vendedorComprovante:null,marca:"",modelo:"",placa:"",ano:"",chassi:"",renavam:"",cor:"",motor:"",km:"",valorCompra:"",formaPgtoCompra:"Pix",dataCompra:today(),checklist:Object.fromEntries(CHECKLIST_ITEMS.map(i=>[i,false])),observacoes:"",custos:[],compradorNome:"",compradorCPF:"",compradorTelefone:"",compradorCNH:null,compradorComprovante:null,valorVenda:"",formaPgtoVenda:"Pix",dataVenda:"",obsVenda:""};
-  const [f,setF]=useState(initial||blank);
-  const set=(k,v)=>setF(p=>({...p,[k]:v}));
-  const setChk=(item,v)=>setF(p=>({...p,checklist:{...p.checklist,[item]:v}}));
-  const [tab,setTab]=useState("compra");
-  const exportChecklist=()=>{const chkLines=CHECKLIST_ITEMS.map(i=>`${f.checklist[i]?"[X]":"[ ]"} ${i}`).join("\n");const txt=`PTK MOTOS — CHECK LIST DE COMPRA\n================================\nDATA: ${fmtDate(f.dataCompra)}\n\nDADOS DO VENDEDOR\nNome: ${f.vendedorNome}\nCPF: ${f.vendedorCPF} RG: ${f.vendedorRG}\nTelefone: ${f.vendedorTelefone}\n\nDADOS DA MOTO\nMarca: ${f.marca} Modelo: ${f.modelo}\nPlaca: ${f.placa} Ano: ${f.ano} Cor: ${f.cor}\nChassi: ${f.chassi}\nRenavam: ${f.renavam}\nKM: ${f.km}\n\nNEGOCIAÇÃO\nValor de Compra: ${fmt(f.valorCompra)}\nForma: ${f.formaPgtoCompra}\n\nCHECK LIST\n${chkLines}\n\nOBSERVAÇÕES:\n${f.observacoes||"—"}`;const a=document.createElement("a");a.href="data:text/plain;charset=utf-8,"+encodeURIComponent(txt);a.download=`checklist_${f.placa||f.modelo||"moto"}.txt`;a.click();};
-  const TabBtn=({id,label})=>(<button onClick={()=>setTab(id)} style={{padding:"8px 14px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===id?"#c62828":"transparent",color:tab===id?"#fff":"#666",whiteSpace:"nowrap"}}>{label}</button>);
-  const totalCustos=(f.custos||[]).reduce((s,c)=>s+Number(c.val),0);
-  const lucroLiq=f.valorVenda?Number(f.valorVenda)-Number(f.valorCompra||0)-totalCustos:null;return(<div style={{display:"flex",flexDirection:"column",gap:0}}>
+  </div>);}function Mf({initial,onSave,onCancel}){
+  const bl={id:uid(),status:"Em Estoque",dataCadastro:td(),vendedorNome:"",vendedorCPF:"",vendedorRG:"",vendedorNascimento:"",vendedorEndereco:"",vendedorBairro:"",vendedorCEP:"",vendedorCidade:"",vendedorTelefone:"",vendedorCNH:null,vendedorComprovante:null,marca:"",modelo:"",placa:"",ano:"",chassi:"",renavam:"",cor:"",motor:"",km:"",valorCompra:"",formaPgtoCompra:"Pix",dataCompra:td(),checklist:Object.fromEntries(CL.map(i=>[i,false])),observacoes:"",custos:[],compradorNome:"",compradorCPF:"",compradorTelefone:"",compradorCNH:null,compradorComprovante:null,valorVenda:"",formaPgtoVenda:"Pix",dataVenda:"",obsVenda:""};
+  const[f,setF]=useState(initial||bl);
+  const st=(k,v)=>setF(p=>({...p,[k]:v}));
+  const sk=(item,v)=>setF(p=>({...p,checklist:{...p.checklist,[item]:v}}));
+  const[tab,setTab]=useState("compra");
+  const ex=()=>{const cl=CL.map(i=>`${f.checklist[i]?"[X]":"[ ]"} ${i}`).join("\n");const tx=`PTK MOTOS CHECK LIST\nDATA: ${fd(f.dataCompra)}\nNome: ${f.vendedorNome}\nCPF: ${f.vendedorCPF} RG: ${f.vendedorRG}\nMarca: ${f.marca} Modelo: ${f.modelo}\nPlaca: ${f.placa} Ano: ${f.ano}\nChassi: ${f.chassi}\nRenavam: ${f.renavam}\nKM: ${f.km}\nValor: ${fm(f.valorCompra)}\nForma: ${f.formaPgtoCompra}\n\nCHECK LIST\n${cl}\n\nOBS: ${f.observacoes||"—"}`;const a=document.createElement("a");a.href="data:text/plain;charset=utf-8,"+encodeURIComponent(tx);a.download="checklist_"+( f.placa||"moto")+".txt";a.click();};
+  const Tb=({id,label})=>(<button onClick={()=>setTab(id)} style={{padding:"8px 14px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===id?"#c62828":"transparent",color:tab===id?"#fff":"#666",whiteSpace:"nowrap"}}>{label}</button>);
+  const tc=(f.custos||[]).reduce((s,c)=>s+Number(c.val),0);
+  const ll=f.valorVenda?Number(f.valorVenda)-Number(f.valorCompra||0)-tc:null;
+  return(<div style={{display:"flex",flexDirection:"column",gap:0}}>
     <div style={{display:"flex",gap:3,background:"#f5f5f5",borderRadius:10,padding:4,marginBottom:20,flexWrap:"wrap"}}>
-      <TabBtn id="compra" label="📋 Compra"/><TabBtn id="checklist" label="✅ Checklist"/><TabBtn id="custos" label="🔧 Custos"/>
-      {f.status==="Vendida"&&<TabBtn id="venda" label="🏷️ Venda"/>}
+      <Tb id="compra" label="Compra"/><Tb id="checklist" label="Checklist"/><Tb id="custos" label="Custos"/>
+      {f.status==="Vendida"&&<Tb id="venda" label="Venda"/>}
     </div>
     {tab==="compra"&&(<div style={{display:"flex",flexDirection:"column",gap:16}}>
       <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>DADOS DO VENDEDOR</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <div style={{gridColumn:"1/-1"}}><Field label="Nome completo" value={f.vendedorNome} onChange={e=>set("vendedorNome",e.target.value)}/></div>
-        <Field label="CPF" value={f.vendedorCPF} onChange={e=>set("vendedorCPF",e.target.value)} placeholder="000.000.000-00"/>
-        <Field label="RG" value={f.vendedorRG} onChange={e=>set("vendedorRG",e.target.value)}/>
-        <Field label="Data de Nascimento" type="date" value={f.vendedorNascimento} onChange={e=>set("vendedorNascimento",e.target.value)}/>
-        <Field label="Telefone" value={f.vendedorTelefone} onChange={e=>set("vendedorTelefone",e.target.value)} placeholder="(11) 99999-9999"/>
-        <div style={{gridColumn:"1/-1"}}><Field label="Endereço" value={f.vendedorEndereco} onChange={e=>set("vendedorEndereco",e.target.value)}/></div>
-        <Field label="Bairro" value={f.vendedorBairro} onChange={e=>set("vendedorBairro",e.target.value)}/>
-        <Field label="CEP" value={f.vendedorCEP} onChange={e=>set("vendedorCEP",e.target.value)}/>
-        <Field label="Cidade/UF" value={f.vendedorCidade} onChange={e=>set("vendedorCidade",e.target.value)}/>
+        <div style={{gridColumn:"1/-1"}}><Fi label="Nome completo" value={f.vendedorNome} onChange={e=>st("vendedorNome",e.target.value)}/></div>
+        <Fi label="CPF" value={f.vendedorCPF} onChange={e=>st("vendedorCPF",e.target.value)} placeholder="000.000.000-00"/>
+        <Fi label="RG" value={f.vendedorRG} onChange={e=>st("vendedorRG",e.target.value)}/>
+        <Fi label="Nascimento" type="date" value={f.vendedorNascimento} onChange={e=>st("vendedorNascimento",e.target.value)}/>
+        <Fi label="Telefone" value={f.vendedorTelefone} onChange={e=>st("vendedorTelefone",e.target.value)}/>
+        <div style={{gridColumn:"1/-1"}}><Fi label="Endereco" value={f.vendedorEndereco} onChange={e=>st("vendedorEndereco",e.target.value)}/></div>
+        <Fi label="Bairro" value={f.vendedorBairro} onChange={e=>st("vendedorBairro",e.target.value)}/>
+        <Fi label="CEP" value={f.vendedorCEP} onChange={e=>st("vendedorCEP",e.target.value)}/>
+        <Fi label="Cidade/UF" value={f.vendedorCidade} onChange={e=>st("vendedorCidade",e.target.value)}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <DocUpload label="📷 CNH do Vendedor" value={f.vendedorCNH} onChange={v=>set("vendedorCNH",v)}/>
-        <DocUpload label="🏠 Comprovante de Residência" value={f.vendedorComprovante} onChange={v=>set("vendedorComprovante",v)}/>
+        <Du label="CNH Vendedor" value={f.vendedorCNH} onChange={v=>st("vendedorCNH",v)}/>
+        <Du label="Comprovante Residencia" value={f.vendedorComprovante} onChange={v=>st("vendedorComprovante",v)}/>
       </div>
-      <div style={{height:1,background:"#eee",margin:"4px 0"}}/>
+      <div style={{height:1,background:"#eee"}}/>
       <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>DADOS DA MOTO</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <Field label="Marca" value={f.marca} onChange={e=>set("marca",e.target.value)} placeholder="Honda"/>
-        <Field label="Modelo" value={f.modelo} onChange={e=>set("modelo",e.target.value)} placeholder="CG 160 Titan"/>
-        <Field label="Placa" value={f.placa} onChange={e=>set("placa",e.target.value.toUpperCase())}/>
-        <Field label="Ano Fab./Mod." value={f.ano} onChange={e=>set("ano",e.target.value)} placeholder="2022/2023"/>
-        <Field label="Cor" value={f.cor} onChange={e=>set("cor",e.target.value)}/>
-        <Field label="KM Atual" type="number" value={f.km} onChange={e=>set("km",e.target.value)}/>
-        <Field label="Chassi" value={f.chassi} onChange={e=>set("chassi",e.target.value.toUpperCase())}/>
-        <Field label="Renavam" value={f.renavam} onChange={e=>set("renavam",e.target.value)}/>
-        <div style={{gridColumn:"1/-1"}}><Field label="Número do Motor" value={f.motor} onChange={e=>set("motor",e.target.value.toUpperCase())}/></div>
+        <Fi label="Marca" value={f.marca} onChange={e=>st("marca",e.target.value)} placeholder="Honda"/>
+        <Fi label="Modelo" value={f.modelo} onChange={e=>st("modelo",e.target.value)} placeholder="CG 160"/>
+        <Fi label="Placa" value={f.placa} onChange={e=>st("placa",e.target.value.toUpperCase())}/>
+        <Fi label="Ano" value={f.ano} onChange={e=>st("ano",e.target.value)}/>
+        <Fi label="Cor" value={f.cor} onChange={e=>st("cor",e.target.value)}/>
+        <Fi label="KM" type="number" value={f.km} onChange={e=>st("km",e.target.value)}/>
+        <Fi label="Chassi" value={f.chassi} onChange={e=>st("chassi",e.target.value.toUpperCase())}/>
+        <Fi label="Renavam" value={f.renavam} onChange={e=>st("renavam",e.target.value)}/>
+        <div style={{gridColumn:"1/-1"}}><Fi label="Motor" value={f.motor} onChange={e=>st("motor",e.target.value.toUpperCase())}/></div>
       </div>
-      <div style={{height:1,background:"#eee",margin:"4px 0"}}/>
-      <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>NEGOCIAÇÃO</p>
+      <div style={{height:1,background:"#eee"}}/>
+      <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>NEGOCIACAO</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <Field label="Valor de Compra (R$)" type="number" value={f.valorCompra} onChange={e=>set("valorCompra",e.target.value)}/>
-        <Sel label="Forma de Pagamento" value={f.formaPgtoCompra} onChange={e=>set("formaPgtoCompra",e.target.value)}>{FORMAS_PGTO.map(x=><option key={x}>{x}</option>)}</Sel>
-        <Field label="Data da Compra" type="date" value={f.dataCompra} onChange={e=>set("dataCompra",e.target.value)}/>
-        <Sel label="Status" value={f.status} onChange={e=>set("status",e.target.value)}>{Object.keys(STATUS_CORES).map(s=><option key={s}>{s}</option>)}</Sel>
+        <Fi label="Valor Compra R$" type="number" value={f.valorCompra} onChange={e=>st("valorCompra",e.target.value)}/>
+        <Se label="Forma Pgto" value={f.formaPgtoCompra} onChange={e=>st("formaPgtoCompra",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>
+        <Fi label="Data Compra" type="date" value={f.dataCompra} onChange={e=>st("dataCompra",e.target.value)}/>
+        <Se label="Status" value={f.status} onChange={e=>st("status",e.target.value)}>{Object.keys(SC).map(s=><option key={s}>{s}</option>)}</Se>
       </div>
     </div>)}
     {tab==="checklist"&&(<div style={{display:"flex",flexDirection:"column",gap:12}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>CHECK LIST DO VEÍCULO</p>
-        <button onClick={exportChecklist} style={{padding:"7px 14px",border:"1.5px solid #c62828",borderRadius:8,background:"#fff",color:"#c62828",fontWeight:700,cursor:"pointer",fontSize:12}}>📄 Exportar</button>
+        <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>CHECK LIST</p>
+        <button onClick={ex} style={{padding:"7px 14px",border:"1.5px solid #c62828",borderRadius:8,background:"#fff",color:"#c62828",fontWeight:700,cursor:"pointer",fontSize:12}}>Exportar</button>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        {CHECKLIST_ITEMS.map(item=>(<label key={item} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",border:f.checklist[item]?"2px solid #43a047":"1.5px solid #ddd",borderRadius:10,cursor:"pointer",background:f.checklist[item]?"#f1f8e9":"#fafafa",fontSize:13,fontWeight:500}}>
-          <input type="checkbox" checked={f.checklist[item]} onChange={e=>setChk(item,e.target.checked)} style={{width:18,height:18,accentColor:"#43a047",cursor:"pointer",flexShrink:0}}/>{item}
+        {CL.map(item=>(<label key={item} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",border:f.checklist[item]?"2px solid #43a047":"1.5px solid #ddd",borderRadius:10,cursor:"pointer",background:f.checklist[item]?"#f1f8e9":"#fafafa",fontSize:13,fontWeight:500}}>
+          <input type="checkbox" checked={f.checklist[item]} onChange={e=>sk(item,e.target.checked)} style={{width:18,height:18,accentColor:"#43a047",cursor:"pointer",flexShrink:0}}/>{item}
         </label>))}
       </div>
-      <TA label="Observações / Defeitos" value={f.observacoes} onChange={e=>set("observacoes",e.target.value)} placeholder="Ex: Moto sem detalhes..."/>
+      <Ta label="Observacoes" value={f.observacoes} onChange={e=>st("observacoes",e.target.value)}/>
     </div>)}
     {tab==="custos"&&(<div style={{display:"flex",flexDirection:"column",gap:12}}>
-      <CustosForm custos={f.custos} onChange={v=>set("custos",v)}/>
+      <Cf custos={f.custos} onChange={v=>st("custos",v)}/>
       {f.valorCompra&&(<div style={{background:"#f9f9f9",borderRadius:10,padding:"12px 16px",fontSize:13,display:"flex",flexDirection:"column",gap:6}}>
-        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Compra:</span><span>{fmt(f.valorCompra)}</span></div>
-        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Custos:</span><span style={{color:"#c62828"}}>{fmt(totalCustos)}</span></div>
-        <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,borderTop:"1px solid #eee",paddingTop:6}}><span>Custo total:</span><span>{fmt(Number(f.valorCompra)+totalCustos)}</span></div>
-        {lucroLiq!==null&&<div style={{display:"flex",justifyContent:"space-between",fontWeight:700,color:lucroLiq>=0?"#2e7d32":"#c62828",borderTop:"1px solid #eee",paddingTop:6}}><span>Lucro líquido:</span><span>{fmt(lucroLiq)}</span></div>}
+        <div style={{display:"flex",justifyContent:"space-between"}}><span>Compra:</span><span>{fm(f.valorCompra)}</span></div>
+        <div style={{display:"flex",justifyContent:"space-between"}}><span>Custos:</span><span style={{color:"#c62828"}}>{fm(tc)}</span></div>
+        <div style={{display:"flex",justifyContent:"space-between",fontWeight:700,borderTop:"1px solid #eee",paddingTop:6}}><span>Total:</span><span>{fm(Number(f.valorCompra)+tc)}</span></div>
+        {ll!==null&&<div style={{display:"flex",justifyContent:"space-between",fontWeight:700,color:ll>=0?"#2e7d32":"#c62828",borderTop:"1px solid #eee",paddingTop:6}}><span>Lucro:</span><span>{fm(ll)}</span></div>}
       </div>)}
     </div>)}
     {tab==="venda"&&f.status==="Vendida"&&(<div style={{display:"flex",flexDirection:"column",gap:16}}>
       <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>DADOS DO COMPRADOR</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <div style={{gridColumn:"1/-1"}}><Field label="Nome completo" value={f.compradorNome} onChange={e=>set("compradorNome",e.target.value)}/></div>
-        <Field label="CPF" value={f.compradorCPF} onChange={e=>set("compradorCPF",e.target.value)}/>
-        <Field label="Telefone" value={f.compradorTelefone} onChange={e=>set("compradorTelefone",e.target.value)}/>
+        <div style={{gridColumn:"1/-1"}}><Fi label="Nome completo" value={f.compradorNome} onChange={e=>st("compradorNome",e.target.value)}/></div>
+        <Fi label="CPF" value={f.compradorCPF} onChange={e=>st("compradorCPF",e.target.value)}/>
+        <Fi label="Telefone" value={f.compradorTelefone} onChange={e=>st("compradorTelefone",e.target.value)}/>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <DocUpload label="📷 CNH do Comprador" value={f.compradorCNH} onChange={v=>set("compradorCNH",v)}/>
-        <DocUpload label="🏠 Comprovante de Residência" value={f.compradorComprovante} onChange={v=>set("compradorComprovante",v)}/>
+        <Du label="CNH Comprador" value={f.compradorCNH} onChange={v=>st("compradorCNH",v)}/>
+        <Du label="Comprovante Residencia" value={f.compradorComprovante} onChange={v=>st("compradorComprovante",v)}/>
       </div>
       <div style={{height:1,background:"#eee"}}/>
-      <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>NEGOCIAÇÃO DA VENDA</p>
+      <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>NEGOCIACAO DA VENDA</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        <Field label="Valor de Venda (R$)" type="number" value={f.valorVenda} onChange={e=>set("valorVenda",e.target.value)}/>
-        <Sel label="Forma de Pagamento" value={f.formaPgtoVenda} onChange={e=>set("formaPgtoVenda",e.target.value)}>{FORMAS_PGTO.map(x=><option key={x}>{x}</option>)}</Sel>
-        <Field label="Data da Venda" type="date" value={f.dataVenda} onChange={e=>set("dataVenda",e.target.value)}/>
+        <Fi label="Valor Venda R$" type="number" value={f.valorVenda} onChange={e=>st("valorVenda",e.target.value)}/>
+        <Se label="Forma Pgto" value={f.formaPgtoVenda} onChange={e=>st("formaPgtoVenda",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>
+        <Fi label="Data Venda" type="date" value={f.dataVenda} onChange={e=>st("dataVenda",e.target.value)}/>
       </div>
-      <TA label="Observações" value={f.obsVenda} onChange={e=>set("obsVenda",e.target.value)}/>
+      <Ta label="Observacoes" value={f.obsVenda} onChange={e=>st("obsVenda",e.target.value)}/>
     </div>)}
     <div style={{display:"flex",gap:10,marginTop:24,justifyContent:"flex-end"}}>
       <button onClick={onCancel} style={{padding:"10px 20px",border:"1.5px solid #ddd",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:14}}>Cancelar</button>
-      <button onClick={()=>{if(!f.marca||!f.modelo){alert("Informe Marca e Modelo.");return;}onSave(f);}} style={{padding:"10px 24px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",cursor:"pointer",fontSize:14,fontWeight:700}}>Salvar Moto</button>
+      <button onClick={()=>{if(!f.marca||!f.modelo){alert("Informe Marca e Modelo.");return;}onSave(f);}} style={{padding:"10px 24px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",cursor:"pointer",fontSize:14,fontWeight:700}}>Salvar</button>
     </div>
-  </div>);}function MotoCard({moto,onClick}){
-  const c=STATUS_CORES[moto.status]||STATUS_CORES["Em Estoque"];
-  const totalCustos=(moto.custos||[]).reduce((s,c)=>s+Number(c.val),0);
-  const lucro=moto.status==="Vendida"&&moto.valorVenda?Number(moto.valorVenda)-Number(moto.valorCompra||0)-totalCustos:null;
-  return(<div onClick={onClick} style={{border:"1.5px solid #eee",borderRadius:14,padding:16,cursor:"pointer",background:"#fff",boxShadow:"0 1px 4px #0001",transition:"box-shadow .15s"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px #0002"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 4px #0001"}>
+  </div>);}function Mc({moto,onClick}){
+  const c=SC[moto.status]||SC["Em Estoque"];
+  const tc=(moto.custos||[]).reduce((s,c)=>s+Number(c.val),0);
+  const lu=moto.status==="Vendida"&&moto.valorVenda?Number(moto.valorVenda)-Number(moto.valorCompra||0)-tc:null;
+  return(<div onClick={onClick} style={{border:"1.5px solid #eee",borderRadius:14,padding:16,cursor:"pointer",background:"#fff",boxShadow:"0 1px 4px #0001"}} onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px #0002"} onMouseLeave={e=>e.currentTarget.style.boxShadow="0 1px 4px #0001"}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-      <div><p style={{margin:0,fontWeight:800,fontSize:16,color:"#1a1a1a"}}>{moto.marca} {moto.modelo}</p><p style={{margin:0,fontSize:12,color:"#888"}}>{moto.placa} · {moto.ano} · {moto.cor}</p></div>
-      <span style={{background:c.bg,color:c.text,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,whiteSpace:"nowrap"}}>● {moto.status}</span>
+      <div><p style={{margin:0,fontWeight:800,fontSize:16}}>{moto.marca} {moto.modelo}</p><p style={{margin:0,fontSize:12,color:"#888"}}>{moto.placa} {moto.ano} {moto.cor}</p></div>
+      <span style={{background:c.bg,color:c.tx,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:20,whiteSpace:"nowrap"}}>● {moto.status}</span>
     </div>
     <div style={{fontSize:13,display:"flex",flexDirection:"column",gap:3}}>
-      <span>💰 Compra: <b>{fmt(moto.valorCompra)}</b>{totalCustos>0&&<span style={{color:"#c62828"}}> + {fmt(totalCustos)} custos</span>}</span>
-      {moto.status==="Vendida"&&<span>🏷️ Venda: <b>{fmt(moto.valorVenda)}</b></span>}
-      {lucro!==null&&<span style={{color:lucro>=0?"#2e7d32":"#b71c1c",fontWeight:700}}>{lucro>=0?"📈":"📉"} Lucro líquido: {fmt(lucro)}</span>}
+      <span>Compra: <b>{fm(moto.valorCompra)}</b>{tc>0&&<span style={{color:"#c62828"}}> + {fm(tc)}</span>}</span>
+      {moto.status==="Vendida"&&<span>Venda: <b>{fm(moto.valorVenda)}</b></span>}
+      {lu!==null&&<span style={{color:lu>=0?"#2e7d32":"#b71c1c",fontWeight:700}}>{lu>=0?"↑":"↓"} Lucro: {fm(lu)}</span>}
     </div>
-    {moto.vendedorNome&&<p style={{margin:"8px 0 0",fontSize:12,color:"#999"}}>Comprado de: {moto.vendedorNome}</p>}
-    {moto.compradorNome&&<p style={{margin:"2px 0 0",fontSize:12,color:"#999"}}>Vendido para: {moto.compradorNome}</p>}
+    {moto.vendedorNome&&<p style={{margin:"8px 0 0",fontSize:12,color:"#999"}}>De: {moto.vendedorNome}</p>}
+    {moto.compradorNome&&<p style={{margin:"2px 0 0",fontSize:12,color:"#999"}}>Para: {moto.compradorNome}</p>}
   </div>);}
-function Dashboard({motos}){
-  const estoque=motos.filter(m=>m.status==="Em Estoque");
-  const vendidas=motos.filter(m=>m.status==="Vendida");
-  const reforma=motos.filter(m=>m.status==="Em Reforma");
-  const totalCustos=motos.reduce((s,m)=>s+(m.custos||[]).reduce((a,c)=>a+Number(c.val),0),0);
-  const totalCompras=motos.reduce((s,m)=>s+Number(m.valorCompra||0),0);
-  const totalVendas=vendidas.reduce((s,m)=>s+Number(m.valorVenda||0),0);
-  const lucroLiq=totalVendas-vendidas.reduce((s,m)=>s+Number(m.valorCompra||0),0)-vendidas.reduce((s,m)=>s+(m.custos||[]).reduce((a,c)=>a+Number(c.val),0),0);
-  const Card=({label,value,sub,color})=>(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:18,boxShadow:"0 1px 4px #0001"}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase",letterSpacing:".5px"}}>{label}</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:color||"#1a1a1a"}}>{value}</p>{sub&&<p style={{margin:"2px 0 0",fontSize:11,color:"#aaa"}}>{sub}</p>}</div>);
+function Db({motos}){
+  const es=motos.filter(m=>m.status==="Em Estoque");
+  const ve=motos.filter(m=>m.status==="Vendida");
+  const re=motos.filter(m=>m.status==="Em Reforma");
+  const tc=motos.reduce((s,m)=>s+(m.custos||[]).reduce((a,c)=>a+Number(c.val),0),0);
+  const tp=motos.reduce((s,m)=>s+Number(m.valorCompra||0),0);
+  const tv=ve.reduce((s,m)=>s+Number(m.valorVenda||0),0);
+  const ll=tv-ve.reduce((s,m)=>s+Number(m.valorCompra||0),0)-ve.reduce((s,m)=>s+(m.custos||[]).reduce((a,c)=>a+Number(c.val),0),0);
+  const Ca=({label,value,sub,color})=>(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:18}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{label}</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:color||"#1a1a1a"}}>{value}</p>{sub&&<p style={{margin:"2px 0 0",fontSize:11,color:"#aaa"}}>{sub}</p>}</div>);
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-      <Card label="Em Estoque" value={estoque.length} sub="disponíveis" color="#1565c0"/>
-      <Card label="Vendidas" value={vendidas.length} sub="total" color="#b71c1c"/>
-      <Card label="Em Reforma" value={reforma.length} sub="aguardando" color="#e65100"/>
+      <Ca label="Em Estoque" value={es.length} sub="disponiveis" color="#1565c0"/>
+      <Ca label="Vendidas" value={ve.length} sub="total" color="#b71c1c"/>
+      <Ca label="Em Reforma" value={re.length} sub="aguardando" color="#e65100"/>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-      <Card label="Total Investido" value={fmt(totalCompras)} color="#37474f"/>
-      <Card label="Custos Extras" value={fmt(totalCustos)} color="#c62828"/>
-      <Card label="Total em Vendas" value={fmt(totalVendas)} color="#1b5e20"/>
-      <Card label="Lucro Líquido" value={fmt(lucroLiq)} color={lucroLiq>=0?"#2e7d32":"#b71c1c"}/>
+      <Ca label="Total Investido" value={fm(tp)} color="#37474f"/>
+      <Ca label="Custos Extras" value={fm(tc)} color="#c62828"/>
+      <Ca label="Total Vendas" value={fm(tv)} color="#1b5e20"/>
+      <Ca label="Lucro Liquido" value={fm(ll)} color={ll>=0?"#2e7d32":"#b71c1c"}/>
     </div>
     {motos.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
-      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Últimas cadastradas</p>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Ultimas cadastradas</p>
       {[...motos].reverse().slice(0,5).map(m=>(<div key={m.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f0f0f0",fontSize:13}}>
-        <span><b>{m.marca} {m.modelo}</b> · {m.placa}</span>
-        <span style={{color:STATUS_CORES[m.status]?.text}}>{m.status}</span>
+        <span><b>{m.marca} {m.modelo}</b> {m.placa}</span>
+        <span style={{color:SC[m.status]?.tx}}>{m.status}</span>
       </div>))}
     </div>)}
   </div>);}
-function Financeiro({motos,financeiro,onAddFin,onRemFin}){
-  const [desc,setDesc]=useState("");const [val,setVal]=useState("");
-  const [tipo,setTipo]=useState("Saída");const [data,setData]=useState(today());const [cat,setCat]=useState("Outros");
-  const CATS=["Aluguel","Salário","Conta de luz/água","Marketing","Equipamentos","Impostos","Outros"];
-  const movMotos=motos.flatMap(m=>{const r=[];
-    if(m.valorCompra&&m.dataCompra)r.push({id:"c"+m.id,desc:`Compra: ${m.marca} ${m.modelo} (${m.placa})`,val:Number(m.valorCompra),tipo:"Saída",data:m.dataCompra,cat:"Compra de Moto"});
-    (m.custos||[]).forEach(c=>r.push({id:"k"+c.id,desc:`Custo: ${c.desc} — ${m.marca} ${m.modelo}`,val:Number(c.val),tipo:"Saída",data:c.data,cat:c.cat}));
-    if(m.valorVenda&&m.dataVenda)r.push({id:"v"+m.id,desc:`Venda: ${m.marca} ${m.modelo} (${m.placa})`,val:Number(m.valorVenda),tipo:"Entrada",data:m.dataVenda,cat:"Venda de Moto"});
+function Fn({motos,financeiro,onAdd,onRem}){
+  const[desc,setDesc]=useState("");const[val,setVal]=useState("");const[tipo,setTipo]=useState("Saida");const[data,setData]=useState(td());const[cat,setCat]=useState("Outros");
+  const CA=["Aluguel","Salario","Luz agua","Marketing","Equipamentos","Impostos","Outros"];
+  const mv=motos.flatMap(m=>{const r=[];
+    if(m.valorCompra&&m.dataCompra)r.push({id:"c"+m.id,desc:"Compra: "+m.marca+" "+m.modelo,val:Number(m.valorCompra),tipo:"Saida",data:m.dataCompra,cat:"Compra Moto"});
+    (m.custos||[]).forEach(c=>r.push({id:"k"+c.id,desc:"Custo: "+c.desc,val:Number(c.val),tipo:"Saida",data:c.data,cat:c.cat}));
+    if(m.valorVenda&&m.dataVenda)r.push({id:"v"+m.id,desc:"Venda: "+m.marca+" "+m.modelo,val:Number(m.valorVenda),tipo:"Entrada",data:m.dataVenda,cat:"Venda Moto"});
     return r;});
-  const todos=[...movMotos,...financeiro].sort((a,b)=>b.data.localeCompare(a.data));
-  const entradas=todos.filter(x=>x.tipo==="Entrada").reduce((s,x)=>s+x.val,0);
-  const saidas=todos.filter(x=>x.tipo==="Saída").reduce((s,x)=>s+x.val,0);
+  const todos=[...mv,...financeiro].sort((a,b)=>b.data.localeCompare(a.data));
+  const en=todos.filter(x=>x.tipo==="Entrada").reduce((s,x)=>s+x.val,0);
+  const sa=todos.filter(x=>x.tipo==="Saida").reduce((s,x)=>s+x.val,0);
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-      {[["Entradas",entradas,"#2e7d32"],["Saídas",saidas,"#b71c1c"],["Saldo",entradas-saidas,(entradas-saidas)>=0?"#1565c0":"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:c}}>{fmt(v)}</p></div>))}
+      {[["Entradas",en,"#2e7d32"],["Saidas",sa,"#b71c1c"],["Saldo",en-sa,(en-sa)>=0?"#1565c0":"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:c}}>{fm(v)}</p></div>))}
     </div>
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
-      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Lançamento manual</p>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Lancamento manual</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-        <div style={{gridColumn:"1/-1"}}><Field label="Descrição" value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Ex: Conta de luz"/></div>
-        <Field label="Valor (R$)" type="number" value={val} onChange={e=>setVal(e.target.value)}/>
-        <Sel label="Tipo" value={tipo} onChange={e=>setTipo(e.target.value)}><option>Saída</option><option>Entrada</option></Sel>
-        <Sel label="Categoria" value={cat} onChange={e=>setCat(e.target.value)}>{CATS.map(c=><option key={c}>{c}</option>)}</Sel>
-        <Field label="Data" type="date" value={data} onChange={e=>setData(e.target.value)}/>
+        <div style={{gridColumn:"1/-1"}}><Fi label="Descricao" value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Ex: Conta de luz"/></div>
+        <Fi label="Valor R$" type="number" value={val} onChange={e=>setVal(e.target.value)}/>
+        <Se label="Tipo" value={tipo} onChange={e=>setTipo(e.target.value)}><option>Saida</option><option>Entrada</option></Se>
+        <Se label="Categoria" value={cat} onChange={e=>setCat(e.target.value)}>{CA.map(c=><option key={c}>{c}</option>)}</Se>
+        <Fi label="Data" type="date" value={data} onChange={e=>setData(e.target.value)}/>
       </div>
-      <button onClick={()=>{if(!val||!desc)return;onAddFin({id:uid(),desc,val:Number(val),tipo,data,cat});setDesc("");setVal("");}} style={{marginTop:12,padding:"9px 20px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>+ Adicionar</button>
+      <button onClick={()=>{if(!val||!desc)return;onAdd({id:uid(),desc,val:Number(val),tipo,data,cat});setDesc("");setVal("");}} style={{marginTop:12,padding:"9px 20px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",fontWeight:700,cursor:"pointer"}}>+ Adicionar</button>
     </div>
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}>
-      <p style={{margin:0,padding:"14px 20px",fontWeight:700,fontSize:14,borderBottom:"1px solid #eee"}}>Extrato completo</p>
-      {todos.length===0&&<p style={{padding:20,color:"#aaa",fontSize:13,textAlign:"center"}}>Nenhum lançamento ainda.</p>}
+      <p style={{margin:0,padding:"14px 20px",fontWeight:700,fontSize:14,borderBottom:"1px solid #eee"}}>Extrato</p>
+      {todos.length===0&&<p style={{padding:20,color:"#aaa",fontSize:13,textAlign:"center"}}>Nenhum lancamento.</p>}
       {todos.map(x=>(<div key={x.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:"1px solid #f5f5f5"}}>
-        <span style={{fontSize:18}}>{x.tipo==="Entrada"?"📈":"📉"}</span>
-        <div style={{flex:1}}><p style={{margin:0,fontSize:13,fontWeight:600}}>{x.desc}</p><p style={{margin:0,fontSize:11,color:"#aaa"}}>{x.cat} · {fmtDate(x.data)}</p></div>
-        <span style={{fontWeight:700,color:x.tipo==="Entrada"?"#2e7d32":"#c62828"}}>{x.tipo==="Entrada"?"+":"-"}{fmt(x.val)}</span>
-        {!x.id.startsWith("c")&&!x.id.startsWith("v")&&!x.id.startsWith("k")&&(<button onClick={()=>onRemFin(x.id)} style={{border:"none",background:"none",color:"#ccc",cursor:"pointer",fontSize:14}}>✕</button>)}
+        <span style={{fontSize:18}}>{x.tipo==="Entrada"?"↑":"↓"}</span>
+        <div style={{flex:1}}><p style={{margin:0,fontSize:13,fontWeight:600}}>{x.desc}</p><p style={{margin:0,fontSize:11,color:"#aaa"}}>{x.cat} {fd(x.data)}</p></div>
+        <span style={{fontWeight:700,color:x.tipo==="Entrada"?"#2e7d32":"#c62828"}}>{x.tipo==="Entrada"?"+":"-"}{fm(x.val)}</span>
+        {!x.id.startsWith("c")&&!x.id.startsWith("v")&&!x.id.startsWith("k")&&(<button onClick={()=>onRem(x.id)} style={{border:"none",background:"none",color:"#ccc",cursor:"pointer",fontSize:14}}>X</button>)}
       </div>))}
     </div>
-  </div>);}function Relatorios({motos}){
-  const vendidas=motos.filter(m=>m.status==="Vendida"&&m.dataVenda);
-  const porMoto=vendidas.map(m=>{const custos=(m.custos||[]).reduce((s,c)=>s+Number(c.val),0);const lucro=Number(m.valorVenda||0)-Number(m.valorCompra||0)-custos;const dias=m.dataCompra&&m.dataVenda?Math.round((new Date(m.dataVenda)-new Date(m.dataCompra))/86400000):null;return{...m,lucro,custos,dias};}).sort((a,b)=>b.lucro-a.lucro);
-  const porMes={};vendidas.forEach(m=>{const mes=mesAno(m.dataVenda);if(!porMes[mes])porMes[mes]={lucro:0,qtd:0};const custos=(m.custos||[]).reduce((s,c)=>s+Number(c.val),0);porMes[mes].lucro+=Number(m.valorVenda||0)-Number(m.valorCompra||0)-custos;porMes[mes].qtd++;});
-  const melhor=porMoto[0];const mediaLucro=porMoto.length?porMoto.reduce((s,m)=>s+m.lucro,0)/porMoto.length:0;const comDias=porMoto.filter(m=>m.dias!==null);const mediaDias=comDias.length?comDias.reduce((s,m)=>s+m.dias,0)/comDias.length:null;const maxLucroMes=Math.max(...Object.values(porMes).map(x=>Math.abs(x.lucro)),1);
+  </div>);}function Rl({motos}){
+  const ve=motos.filter(m=>m.status==="Vendida"&&m.dataVenda);
+  const pm=ve.map(m=>{const cu=(m.custos||[]).reduce((s,c)=>s+Number(c.val),0);const lu=Number(m.valorVenda||0)-Number(m.valorCompra||0)-cu;const di=m.dataCompra&&m.dataVenda?Math.round((new Date(m.dataVenda)-new Date(m.dataCompra))/86400000):null;return{...m,lu,cu,di};}).sort((a,b)=>b.lu-a.lu);
+  const pr={};ve.forEach(m=>{const ms=ma(m.dataVenda);if(!pr[ms])pr[ms]={lu:0,qt:0};const cu=(m.custos||[]).reduce((s,c)=>s+Number(c.val),0);pr[ms].lu+=Number(m.valorVenda||0)-Number(m.valorCompra||0)-cu;pr[ms].qt++;});
+  const mb=pm[0];const ml=pm.length?pm.reduce((s,m)=>s+m.lu,0)/pm.length:0;const cd=pm.filter(m=>m.di!==null);const md=cd.length?cd.reduce((s,m)=>s+m.di,0)/cd.length:null;const mx=Math.max(...Object.values(pr).map(x=>Math.abs(x.lu)),1);
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-      <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:18}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Lucro médio por moto</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:mediaLucro>=0?"#2e7d32":"#b71c1c"}}>{fmt(mediaLucro)}</p></div>
-      <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:18}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Tempo médio em estoque</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:"#1565c0"}}>{mediaDias!==null?`${Math.round(mediaDias)} dias`:"—"}</p></div>
-      {melhor&&(<div style={{background:"#f1f8e9",border:"1.5px solid #a5d6a7",borderRadius:14,padding:18,gridColumn:"1/-1"}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#2e7d32",textTransform:"uppercase"}}>🏆 Moto mais lucrativa</p><p style={{margin:"6px 0 0",fontSize:16,fontWeight:800}}>{melhor.marca} {melhor.modelo} · {melhor.placa}</p><p style={{margin:"2px 0 0",fontSize:13,color:"#555"}}>Lucro líquido: <b style={{color:"#2e7d32"}}>{fmt(melhor.lucro)}</b></p></div>)}
+      <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:18}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Lucro medio por moto</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:ml>=0?"#2e7d32":"#b71c1c"}}>{fm(ml)}</p></div>
+      <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:18}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Tempo medio estoque</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:"#1565c0"}}>{md!==null?Math.round(md)+" dias":"—"}</p></div>
+      {mb&&(<div style={{background:"#f1f8e9",border:"1.5px solid #a5d6a7",borderRadius:14,padding:18,gridColumn:"1/-1"}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#2e7d32",textTransform:"uppercase"}}>Moto mais lucrativa</p><p style={{margin:"6px 0 0",fontSize:16,fontWeight:800}}>{mb.marca} {mb.modelo} {mb.placa}</p><p style={{margin:"2px 0 0",fontSize:13,color:"#555"}}>Lucro: <b style={{color:"#2e7d32"}}>{fm(mb.lu)}</b></p></div>)}
     </div>
-    {Object.keys(porMes).length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}><p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Lucro por mês</p>
-      {Object.entries(porMes).map(([mes,d])=>(<div key={mes} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-        <span style={{fontSize:12,color:"#888",minWidth:80}}>{mes}</span>
-        <div style={{flex:1,background:"#f5f5f5",borderRadius:20,height:10,overflow:"hidden"}}><div style={{width:`${Math.min(100,Math.abs(d.lucro)/maxLucroMes*100)}%`,height:"100%",background:d.lucro>=0?"#43a047":"#e53935",borderRadius:20}}/></div>
-        <span style={{fontSize:12,fontWeight:700,minWidth:90,textAlign:"right",color:d.lucro>=0?"#2e7d32":"#b71c1c"}}>{fmt(d.lucro)}</span>
-        <span style={{fontSize:11,color:"#aaa"}}>{d.qtd} moto{d.qtd>1?"s":""}</span>
+    {Object.keys(pr).length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}><p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Lucro por mes</p>
+      {Object.entries(pr).map(([ms,d])=>(<div key={ms} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+        <span style={{fontSize:12,color:"#888",minWidth:80}}>{ms}</span>
+        <div style={{flex:1,background:"#f5f5f5",borderRadius:20,height:10,overflow:"hidden"}}><div style={{width:Math.min(100,Math.abs(d.lu)/mx*100)+"%",height:"100%",background:d.lu>=0?"#43a047":"#e53935",borderRadius:20}}/></div>
+        <span style={{fontSize:12,fontWeight:700,minWidth:90,textAlign:"right",color:d.lu>=0?"#2e7d32":"#b71c1c"}}>{fm(d.lu)}</span>
+        <span style={{fontSize:11,color:"#aaa"}}>{d.qt} motos</span>
       </div>))}
     </div>)}
-    {porMoto.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}><p style={{margin:0,padding:"14px 20px",fontWeight:700,fontSize:14,borderBottom:"1px solid #eee"}}>Detalhamento por moto vendida</p>
-      {porMoto.map(m=>(<div key={m.id} style={{padding:"12px 16px",borderBottom:"1px solid #f5f5f5"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}><div><p style={{margin:0,fontWeight:700,fontSize:13}}>{m.marca} {m.modelo} · {m.placa}</p><p style={{margin:"2px 0 0",fontSize:11,color:"#aaa"}}>Compra: {fmt(m.valorCompra)} · Custos: {fmt(m.custos)} · Venda: {fmt(m.valorVenda)}{m.dias!==null&&` · ${m.dias} dias`}</p></div><span style={{fontWeight:800,fontSize:14,color:m.lucro>=0?"#2e7d32":"#b71c1c"}}>{fmt(m.lucro)}</span></div></div>))}
+    {pm.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}><p style={{margin:0,padding:"14px 20px",fontWeight:700,fontSize:14,borderBottom:"1px solid #eee"}}>Detalhamento</p>
+      {pm.map(m=>(<div key={m.id} style={{padding:"12px 16px",borderBottom:"1px solid #f5f5f5"}}><div style={{display:"flex",justifyContent:"space-between"}}><div><p style={{margin:0,fontWeight:700,fontSize:13}}>{m.marca} {m.modelo} {m.placa}</p><p style={{margin:"2px 0 0",fontSize:11,color:"#aaa"}}>Compra:{fm(m.valorCompra)} Custos:{fm(m.cu)} Venda:{fm(m.valorVenda)}{m.di!==null&&" "+m.di+"d"}</p></div><span style={{fontWeight:800,fontSize:14,color:m.lu>=0?"#2e7d32":"#b71c1c"}}>{fm(m.lu)}</span></div></div>))}
     </div>)}
-    {porMoto.length===0&&(<div style={{textAlign:"center",padding:"40px 0",color:"#aaa"}}><p style={{fontSize:36}}>📊</p><p style={{fontWeight:600}}>Ainda não há motos vendidas para analisar</p></div>)}
+    {pm.length===0&&(<div style={{textAlign:"center",padding:"40px 0",color:"#aaa"}}><p style={{fontSize:36}}>📊</p><p style={{fontWeight:600}}>Nenhuma moto vendida ainda</p></div>)}
   </div>);}
-function Contas({contas,onSave}){
-  const [catAtiva,setCatAtiva]=useState("Todas");
-  const [novaDesc,setNovaDesc]=useState("");const [novaCat,setNovaCat]=useState(CATS_CONTAS[0]);
-  const [novaVal,setNovaVal]=useState("");const [novaVenc,setNovaVenc]=useState("");
-  const [novaPgto,setNovaPgto]=useState("");const [novaFixa,setNovaFixa]=useState(false);
-  const add=()=>{if(!novaDesc||!novaVal)return;const item={id:uid(),desc:novaDesc,cat:novaCat,val:Number(novaVal),vencimento:novaVenc,dataPgto:novaPgto,pago:!!novaPgto,fixa:novaFixa};onSave([...contas,item]);setNovaDesc("");setNovaVal("");setNovaVenc("");setNovaPgto("");setNovaFixa(false);};
-  const toggle=(id)=>onSave(contas.map(c=>c.id===id?{...c,pago:!c.pago,dataPgto:!c.pago?today():""}:c));
-  const rem=(id)=>{if(!confirm("Remover esta conta?"))return;onSave(contas.filter(c=>c.id!==id));};
-  const upd=(id,k,v)=>onSave(contas.map(c=>c.id===id?{...c,[k]:v}:c));
-  const filtradas=catAtiva==="Todas"?contas:contas.filter(c=>c.cat===catAtiva);
-  const totalGeral=contas.reduce((s,c)=>s+Number(c.val),0);
-  const totalPago=contas.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);
-  const totalPend=contas.filter(c=>!c.pago).reduce((s,c)=>s+Number(c.val),0);
-  const porCat=CATS_CONTAS.map(cat=>({cat,total:contas.filter(c=>c.cat===cat).reduce((s,c)=>s+Number(c.val),0),pago:contas.filter(c=>c.cat===cat&&c.pago).reduce((s,c)=>s+Number(c.val),0)})).filter(x=>x.total>0);
-  const maxVal=Math.max(...porCat.map(x=>x.total),1);
+function Co({contas,onSave}){
+  const[ca,setCa]=useState("Todas");const[nd,setNd]=useState("");const[nc,setNc]=useState(CC[0]);const[nv,setNv]=useState("");const[nvn,setNvn]=useState("");const[np,setNp]=useState("");const[nf,setNf]=useState(false);
+  const add=()=>{if(!nd||!nv)return;onSave([...contas,{id:uid(),desc:nd,cat:nc,val:Number(nv),vencimento:nvn,dataPgto:np,pago:!!np,fixa:nf}]);setNd("");setNv("");setNvn("");setNp("");setNf(false);};
+  const tg=(id)=>onSave(contas.map(c=>c.id===id?{...c,pago:!c.pago,dataPgto:!c.pago?td():""}:c));
+  const rm=(id)=>{if(!confirm("Remover?"))return;onSave(contas.filter(c=>c.id!==id));};
+  const up=(id,k,v)=>onSave(contas.map(c=>c.id===id?{...c,[k]:v}:c));
+  const fl=ca==="Todas"?contas:contas.filter(c=>c.cat===ca);
+  const tg2=contas.reduce((s,c)=>s+Number(c.val),0);
+  const tp=contas.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);
+  const tpn=contas.filter(c=>!c.pago).reduce((s,c)=>s+Number(c.val),0);
+  const pc=CC.map(ct=>({ct,tot:contas.filter(c=>c.cat===ct).reduce((s,c)=>s+Number(c.val),0),pg:contas.filter(c=>c.cat===ct&&c.pago).reduce((s,c)=>s+Number(c.val),0)})).filter(x=>x.tot>0);
+  const mx=Math.max(...pc.map(x=>x.tot),1);
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-      {[["Total",totalGeral,"#37474f"],["Pago",totalPago,"#2e7d32"],["Pendente",totalPend,"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:c}}>{fmt(v)}</p></div>))}
+      {[["Total",tg2,"#37474f"],["Pago",tp,"#2e7d32"],["Pendente",tpn,"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:c}}>{fm(v)}</p></div>))}
     </div>
-    {porCat.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
+    {pc.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
       <p style={{margin:"0 0 14px",fontWeight:700,fontSize:14}}>Gastos por categoria</p>
-      {porCat.map(x=>(<div key={x.cat} style={{marginBottom:12}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-          <span style={{fontSize:13,fontWeight:600,color:CORES_CATS[x.cat]||"#333"}}>{x.cat}</span>
-          <span style={{fontSize:13,fontWeight:700}}>{fmt(x.total)}</span>
-        </div>
+      {pc.map(x=>(<div key={x.ct} style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:13,fontWeight:600,color:CR[x.ct]||"#333"}}>{x.ct}</span><span style={{fontSize:13,fontWeight:700}}>{fm(x.tot)}</span></div>
         <div style={{background:"#f0f0f0",borderRadius:20,height:12,overflow:"hidden",position:"relative"}}>
-          <div style={{width:`${(x.total/maxVal)*100}%`,height:"100%",background:CORES_CATS[x.cat]||"#888",borderRadius:20,opacity:.3,position:"absolute"}}/>
-          <div style={{width:`${(x.pago/maxVal)*100}%`,height:"100%",background:CORES_CATS[x.cat]||"#888",borderRadius:20,position:"absolute"}}/>
+          <div style={{width:(x.tot/mx*100)+"%",height:"100%",background:CR[x.ct]||"#888",borderRadius:20,opacity:.3,position:"absolute"}}/>
+          <div style={{width:(x.pg/mx*100)+"%",height:"100%",background:CR[x.ct]||"#888",borderRadius:20,position:"absolute"}}/>
         </div>
-        <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
-          <span style={{fontSize:11,color:"#aaa"}}>Pago: {fmt(x.pago)}</span>
-          <span style={{fontSize:11,color:"#c62828"}}>Pendente: {fmt(x.total-x.pago)}</span>
-        </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}><span style={{fontSize:11,color:"#aaa"}}>Pago: {fm(x.pg)}</span><span style={{fontSize:11,color:"#c62828"}}>Pendente: {fm(x.tot-x.pg)}</span></div>
       </div>))}
     </div>)}
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
       <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>+ Nova conta</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-        <div style={{gridColumn:"1/-1"}}><Field label="Descrição" value={novaDesc} onChange={e=>setNovaDesc(e.target.value)} placeholder="Ex: OLX, Nubank..."/></div>
-        <Sel label="Categoria" value={novaCat} onChange={e=>setNovaCat(e.target.value)}>{CATS_CONTAS.map(c=><option key={c}>{c}</option>)}</Sel>
-        <Field label="Valor (R$)" type="number" value={novaVal} onChange={e=>setNovaVal(e.target.value)}/>
-        <Field label="Vencimento" type="date" value={novaVenc} onChange={e=>setNovaVenc(e.target.value)}/>
-        <Field label="Data Pagamento" type="date" value={novaPgto} onChange={e=>setNovaPgto(e.target.value)}/>
+        <div style={{gridColumn:"1/-1"}}><Fi label="Descricao" value={nd} onChange={e=>setNd(e.target.value)} placeholder="Ex: OLX, Nubank..."/></div>
+        <Se label="Categoria" value={nc} onChange={e=>setNc(e.target.value)}>{CC.map(c=><option key={c}>{c}</option>)}</Se>
+        <Fi label="Valor R$" type="number" value={nv} onChange={e=>setNv(e.target.value)}/>
+        <Fi label="Vencimento" type="date" value={nvn} onChange={e=>setNvn(e.target.value)}/>
+        <Fi label="Data Pagamento" type="date" value={np} onChange={e=>setNp(e.target.value)}/>
         <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,cursor:"pointer",gridColumn:"1/-1"}}>
-          <input type="checkbox" checked={novaFixa} onChange={e=>setNovaFixa(e.target.checked)} style={{width:16,height:16,accentColor:"#c62828"}}/>Conta fixa (recorrente)
+          <input type="checkbox" checked={nf} onChange={e=>setNf(e.target.checked)} style={{width:16,height:16,accentColor:"#c62828"}}/>Conta fixa
         </label>
       </div>
-      <button onClick={add} style={{marginTop:12,padding:"9px 20px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>Adicionar</button>
+      <button onClick={add} style={{marginTop:12,padding:"9px 20px",border:"none",borderRadius:8,background:"#c62828",color:"#fff",fontWeight:700,cursor:"pointer"}}>Adicionar</button>
     </div>
     <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-      {["Todas",...CATS_CONTAS].map(c=>(<button key={c} onClick={()=>setCatAtiva(c)} style={{padding:"6px 14px",border:"1.5px solid",borderColor:catAtiva===c?(CORES_CATS[c]||"#c62828"):"#ddd",borderRadius:20,background:catAtiva===c?(CORES_CATS[c]||"#c62828"):"#fff",color:catAtiva===c?"#fff":"#555",fontSize:12,fontWeight:600,cursor:"pointer"}}>{c}</button>))}
+      {["Todas",...CC].map(c=>(<button key={c} onClick={()=>setCa(c)} style={{padding:"6px 14px",border:"1.5px solid",borderColor:ca===c?(CR[c]||"#c62828"):"#ddd",borderRadius:20,background:ca===c?(CR[c]||"#c62828"):"#fff",color:ca===c?"#fff":"#555",fontSize:12,fontWeight:600,cursor:"pointer"}}>{c}</button>))}
     </div>
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}>
-      {filtradas.length===0&&<p style={{padding:20,color:"#aaa",fontSize:13,textAlign:"center"}}>Nenhuma conta nesta categoria.</p>}
-      {filtradas.map(c=>(<div key={c.id} style={{padding:"12px 16px",borderBottom:"1px solid #f5f5f5",background:c.pago?"#f9fdf9":"#fff"}}>
+      {fl.length===0&&<p style={{padding:20,color:"#aaa",fontSize:13,textAlign:"center"}}>Nenhuma conta.</p>}
+      {fl.map(c=>(<div key={c.id} style={{padding:"12px 16px",borderBottom:"1px solid #f5f5f5",background:c.pago?"#f9fdf9":"#fff"}}>
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-          <button onClick={()=>toggle(c.id)} style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${c.pago?"#43a047":"#ddd"}`,background:c.pago?"#43a047":"#fff",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>{c.pago?"✓":""}</button>
+          <button onClick={()=>tg(c.id)} style={{width:22,height:22,borderRadius:"50%",border:"2px solid "+(c.pago?"#43a047":"#ddd"),background:c.pago?"#43a047":"#fff",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>{c.pago?"V":""}</button>
           <div style={{flex:1}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{display:"flex",justifyContent:"space-between"}}>
               <div>
                 <span style={{fontWeight:700,fontSize:14,color:c.pago?"#888":"#1a1a1a",textDecoration:c.pago?"line-through":"none"}}>{c.desc}</span>
                 {c.fixa&&<span style={{marginLeft:6,fontSize:10,background:"#e3f2fd",color:"#1565c0",padding:"2px 6px",borderRadius:10,fontWeight:700}}>FIXA</span>}
-                <span style={{marginLeft:6,fontSize:10,background:(CORES_CATS[c.cat]||"#888")+"22",color:CORES_CATS[c.cat]||"#333",padding:"2px 6px",borderRadius:10,fontWeight:700}}>{c.cat}</span>
+                <span style={{marginLeft:6,fontSize:10,background:(CR[c.cat]||"#888")+"22",color:CR[c.cat]||"#333",padding:"2px 6px",borderRadius:10,fontWeight:700}}>{c.cat}</span>
               </div>
-              <span style={{fontWeight:800,fontSize:15,color:c.pago?"#2e7d32":"#c62828"}}>{fmt(c.val)}</span>
+              <span style={{fontWeight:800,fontSize:15,color:c.pago?"#2e7d32":"#c62828"}}>{fm(c.val)}</span>
             </div>
             <div style={{display:"flex",gap:16,marginTop:6,flexWrap:"wrap"}}>
-              <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                <span style={{fontSize:10,color:"#aaa",fontWeight:700,textTransform:"uppercase"}}>Vencimento</span>
-                <input type="date" value={c.vencimento||""} onChange={e=>upd(c.id,"vencimento",e.target.value)} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none",background:"#fafafa"}}/>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                <span style={{fontSize:10,color:"#aaa",fontWeight:700,textTransform:"uppercase"}}>Valor</span>
-                <input type="number" value={c.val} onChange={e=>upd(c.id,"val",Number(e.target.value))} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none",background:"#fafafa",width:90}}/>
-              </div>
-              {c.pago&&(<div style={{display:"flex",flexDirection:"column",gap:2}}>
-                <span style={{fontSize:10,color:"#aaa",fontWeight:700,textTransform:"uppercase"}}>Pago em</span>
-                <input type="date" value={c.dataPgto||""} onChange={e=>upd(c.id,"dataPgto",e.target.value)} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none",background:"#fafafa"}}/>
-              </div>)}
+              <div style={{display:"flex",flexDirection:"column",gap:2}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>VENCIMENTO</span><input type="date" value={c.vencimento||""} onChange={e=>up(c.id,"vencimento",e.target.value)} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none"}}/></div>
+              <div style={{display:"flex",flexDirection:"column",gap:2}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>VALOR</span><input type="number" value={c.val} onChange={e=>up(c.id,"val",Number(e.target.value))} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none",width:90}}/></div>
+              {c.pago&&<div style={{display:"flex",flexDirection:"column",gap:2}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>PAGO EM</span><input type="date" value={c.dataPgto||""} onChange={e=>up(c.id,"dataPgto",e.target.value)} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none"}}/></div>}
             </div>
           </div>
-          <button onClick={()=>rem(c.id)} style={{border:"none",background:"none",color:"#ddd",cursor:"pointer",fontSize:16,flexShrink:0}}>✕</button>
+          <button onClick={()=>rm(c.id)} style={{border:"none",background:"none",color:"#ddd",cursor:"pointer",fontSize:16}}>X</button>
         </div>
       </div>))}
     </div>
   </div>);}function App(){
-  const [motos,setMotos]=useState([]);const [financeiro,setFinanceiro]=useState([]);const [contas,setContas]=useState([]);
-  const [binMotos,setBinMotos]=useState(null);const [binFin,setBinFin]=useState(null);const [binContas,setBinContas]=useState(null);
-  const [tela,setTela]=useState("dashboard");const [editando,setEditando]=useState(null);
-  const [busca,setBusca]=useState("");const [filtroStatus,setFiltroStatus]=useState("Todos");
-  const [loading,setLoading]=useState(true);const [salvando,setSalvando]=useState(false);const [erro,setErro]=useState(null);
-  useEffect(()=>{async function init(){try{const[bm,bf,bc]=await Promise.all([getOrCreateBin(BIN_NAME_MOTOS,[]),getOrCreateBin(BIN_NAME_FIN,[]),getOrCreateBin("ptk_contas",[])]);setBinMotos(bm);setBinFin(bf);setBinContas(bc);const[m,f,c]=await Promise.all([readBin(bm),readBin(bf),readBin(bc)]);setMotos(Array.isArray(m)?m:[]);setFinanceiro(Array.isArray(f)?f:[]);setContas(Array.isArray(c)?c:[]);}catch(e){setErro("Erro ao conectar. Verifique sua conexão.");}finally{setLoading(false);}}init();},[]);
-  const salvarMotos=async nova=>{setSalvando(true);setMotos(nova);try{await writeBin(binMotos,nova);}catch{alert("Erro ao salvar.");}setSalvando(false);};
-  const salvarFin=async nova=>{setSalvando(true);setFinanceiro(nova);try{await writeBin(binFin,nova);}catch{alert("Erro ao salvar.");}setSalvando(false);};
-  const salvarContas=async nova=>{setSalvando(true);setContas(nova);try{await writeBin(binContas,nova);}catch{alert("Erro ao salvar.");}setSalvando(false);};
-  const salvarMoto=async moto=>{const nova=editando?motos.map(m=>m.id===moto.id?moto:m):[...motos,moto];await salvarMotos(nova);setTela("estoque");setEditando(null);};
-  const deletarMoto=async id=>{if(!confirm("Remover esta moto?"))return;await salvarMotos(motos.filter(m=>m.id!==id));setTela("estoque");setEditando(null);};
-  const addFin=async item=>await salvarFin([...financeiro,item]);
-  const remFin=async id=>await salvarFin(financeiro.filter(f=>f.id!==id));
-  const motosFiltradas=motos.filter(m=>{const q=busca.toLowerCase();const match=!q||[m.marca,m.modelo,m.placa,m.vendedorNome,m.compradorNome,m.chassi].some(v=>(v||"").toLowerCase().includes(q));return match&&(filtroStatus==="Todos"||m.status===filtroStatus);});
-  const NAV=[{id:"dashboard",icon:"📊",label:"Painel"},{id:"estoque",icon:"🏍️",label:"Estoque"},{id:"contas",icon:"🧾",label:"Contas"},{id:"financeiro",icon:"💰",label:"Financeiro"},{id:"relatorios",icon:"📈",label:"Relatórios"}];
-  if(loading)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:12}}><span style={{fontSize:40}}>🏍️</span><p style={{color:"#c62828",fontWeight:700,fontSize:16}}>Conectando ao banco de dados...</p></div>);
+  const[motos,setMotos]=useState([]);const[fin,setFin]=useState([]);const[contas,setContas]=useState([]);
+  const[bm,setBm]=useState(null);const[bf,setBf]=useState(null);const[bc,setBc]=useState(null);
+  const[tela,setTela]=useState("dashboard");const[edit,setEdit]=useState(null);
+  const[busca,setBusca]=useState("");const[fst,setFst]=useState("Todos");
+  const[load,setLoad]=useState(true);const[salv,setSalv]=useState(false);const[erro,setErro]=useState(null);
+  useEffect(()=>{async function init(){try{
+    const[a,b,c]=await Promise.all([gob(BNM,[]),gob(BNF,[]),gob(BNC,[])]);
+    setBm(a);setBf(b);setBc(c);
+    const[m,f,co]=await Promise.all([rb(a),rb(b),rb(c)]);
+    setMotos(Array.isArray(m)?m:[]);setFin(Array.isArray(f)?f:[]);setContas(Array.isArray(co)?co:[]);
+  }catch(e){setErro("Erro ao conectar.");}finally{setLoad(false);}}init();},[]);
+  const sm=async n=>{setSalv(true);setMotos(n);try{await wb(bm,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
+  const sf=async n=>{setSalv(true);setFin(n);try{await wb(bf,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
+  const sc=async n=>{setSalv(true);setContas(n);try{await wb(bc,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
+  const savMoto=async m=>{const n=edit?motos.map(x=>x.id===m.id?m:x):[...motos,m];await sm(n);setTela("estoque");setEdit(null);};
+  const delMoto=async id=>{if(!confirm("Remover?"))return;await sm(motos.filter(m=>m.id!==id));setTela("estoque");setEdit(null);};
+  const mf=motos.filter(m=>{const q=busca.toLowerCase();const ok=!q||[m.marca,m.modelo,m.placa,m.vendedorNome,m.compradorNome].some(v=>(v||"").toLowerCase().includes(q));return ok&&(fst==="Todos"||m.status===fst);});
+  const NV=[{id:"dashboard",icon:"📊",label:"Painel"},{id:"estoque",icon:"🏍️",label:"Estoque"},{id:"contas",icon:"🧾",label:"Contas"},{id:"financeiro",icon:"💰",label:"Financeiro"},{id:"relatorios",icon:"📈",label:"Relatorios"}];
+  if(load)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:12}}><span style={{fontSize:40}}>🏍️</span><p style={{color:"#c62828",fontWeight:700,fontSize:16}}>Conectando...</p></div>);
   if(erro)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:12,padding:20,textAlign:"center"}}><span style={{fontSize:40}}>⚠️</span><p style={{color:"#c62828",fontWeight:700}}>{erro}</p><button onClick={()=>window.location.reload()} style={{padding:"10px 20px",background:"#c62828",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:700}}>Tentar novamente</button></div>);
-  return(<div style={{fontFamily:"system-ui,-apple-system,sans-serif",background:"#f7f7f7",minHeight:"100vh"}}>
+  return(<div style={{fontFamily:"system-ui,sans-serif",background:"#f7f7f7",minHeight:"100vh"}}>
     <div style={{background:"#c62828",color:"#fff",padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:56,boxShadow:"0 2px 8px #0003",position:"sticky",top:0,zIndex:100}}>
-      <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:22}}>🏍️</span><div><p style={{margin:0,fontWeight:900,fontSize:16,lineHeight:1}}>PTK MOTOS</p><p style={{margin:0,fontSize:10,opacity:.8,lineHeight:1}}>{salvando?"Salvando...":"Gestão Interna · Online ✓"}</p></div></div>
-      {["dashboard","estoque"].includes(tela)&&<button onClick={()=>{setEditando(null);setTela("nova");}} style={{background:"#fff",color:"#c62828",border:"none",borderRadius:8,padding:"7px 14px",fontWeight:700,cursor:"pointer",fontSize:13}}>+ Nova Moto</button>}
-      {["nova","editar"].includes(tela)&&<button onClick={()=>{setTela("estoque");setEditando(null);}} style={{background:"transparent",color:"#fff",border:"1px solid #ffffff66",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:13}}>← Voltar</button>}
+      <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:22}}>🏍️</span><div><p style={{margin:0,fontWeight:900,fontSize:16,lineHeight:1}}>PTK MOTOS</p><p style={{margin:0,fontSize:10,opacity:.8,lineHeight:1}}>{salv?"Salvando...":"Online"}</p></div></div>
+      {["dashboard","estoque"].includes(tela)&&<button onClick={()=>{setEdit(null);setTela("nova");}} style={{background:"#fff",color:"#c62828",border:"none",borderRadius:8,padding:"7px 14px",fontWeight:700,cursor:"pointer",fontSize:13}}>+ Nova Moto</button>}
+      {["nova","editar"].includes(tela)&&<button onClick={()=>{setTela("estoque");setEdit(null);}} style={{background:"transparent",color:"#fff",border:"1px solid #ffffff66",borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:13}}>Voltar</button>}
     </div>
     <div style={{background:"#fff",borderBottom:"1.5px solid #eee",display:"flex",padding:"0 12px",overflowX:"auto",position:"sticky",top:56,zIndex:99}}>
-      {NAV.map(n=>(<button key={n.id} onClick={()=>setTela(n.id)} style={{background:"none",border:"none",padding:"12px 14px",cursor:"pointer",fontSize:13,fontWeight:600,whiteSpace:"nowrap",color:tela===n.id?"#c62828":"#666",borderBottom:tela===n.id?"2.5px solid #c62828":"2.5px solid transparent"}}>{n.icon} {n.label}</button>))}
+      {NV.map(n=>(<button key={n.id} onClick={()=>setTela(n.id)} style={{background:"none",border:"none",padding:"12px 14px",cursor:"pointer",fontSize:13,fontWeight:600,whiteSpace:"nowrap",color:tela===n.id?"#c62828":"#666",borderBottom:tela===n.id?"2.5px solid #c62828":"2.5px solid transparent"}}>{n.icon} {n.label}</button>))}
     </div>
     <div style={{maxWidth:900,margin:"0 auto",padding:"20px 16px"}}>
-      {tela==="dashboard"&&<Dashboard motos={motos}/>}
+      {tela==="dashboard"&&<Db motos={motos}/>}
       {tela==="estoque"&&(<div style={{display:"flex",flexDirection:"column",gap:14}}>
         <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-          <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="🔍 Buscar por marca, placa, nome..." style={{flex:1,minWidth:180,border:"1.5px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:14,outline:"none"}}/>
-          <select value={filtroStatus} onChange={e=>setFiltroStatus(e.target.value)} style={{border:"1.5px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:14,background:"#fff",outline:"none"}}><option>Todos</option>{Object.keys(STATUS_CORES).map(s=><option key={s}>{s}</option>)}</select>
+          <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="Buscar marca, placa, nome..." style={{flex:1,minWidth:180,border:"1.5px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:14,outline:"none"}}/>
+          <select value={fst} onChange={e=>setFst(e.target.value)} style={{border:"1.5px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:14,background:"#fff",outline:"none"}}><option>Todos</option>{Object.keys(SC).map(s=><option key={s}>{s}</option>)}</select>
         </div>
-        {motosFiltradas.length===0?<div style={{textAlign:"center",padding:"40px 0",color:"#aaa"}}><p style={{fontSize:40}}>🏍️</p><p style={{fontWeight:600}}>{busca?"Nenhuma moto encontrada":"Nenhuma moto cadastrada"}</p></div>
-        :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:14}}>{motosFiltradas.map(m=><MotoCard key={m.id} moto={m} onClick={()=>{setEditando(m);setTela("editar");}}/>)}</div>}
+        {mf.length===0?<div style={{textAlign:"center",padding:"40px 0",color:"#aaa"}}><p style={{fontSize:40}}>🏍️</p><p style={{fontWeight:600}}>{busca?"Nenhuma moto encontrada":"Nenhuma moto cadastrada"}</p></div>
+        :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:14}}>{mf.map(m=><Mc key={m.id} moto={m} onClick={()=>{setEdit(m);setTela("editar");}}/>)}</div>}
       </div>)}
-      {tela==="contas"&&<Contas contas={contas} onSave={salvarContas}/>}
-      {tela==="financeiro"&&<Financeiro motos={motos} financeiro={financeiro} onAddFin={addFin} onRemFin={remFin}/>}
-      {tela==="relatorios"&&<Relatorios motos={motos}/>}
-      {tela==="nova"&&(<div style={{background:"#fff",borderRadius:16,padding:24,border:"1.5px solid #eee"}}><h2 style={{margin:"0 0 20px",fontSize:18}}>Cadastrar Nova Moto</h2><MotoForm onSave={salvarMoto} onCancel={()=>setTela("estoque")}/></div>)}
-      {tela==="editar"&&editando&&(<div style={{background:"#fff",borderRadius:16,padding:24,border:"1.5px solid #eee"}}>
+      {tela==="contas"&&<Co contas={contas} onSave={sc}/>}
+      {tela==="financeiro"&&<Fn motos={motos} financeiro={fin} onAdd={async i=>await sf([...fin,i])} onRem={async id=>await sf(fin.filter(f=>f.id!==id))}/>}
+      {tela==="relatorios"&&<Rl motos={motos}/>}
+      {tela==="nova"&&(<div style={{background:"#fff",borderRadius:16,padding:24,border:"1.5px solid #eee"}}><h2 style={{margin:"0 0 20px",fontSize:18}}>Cadastrar Nova Moto</h2><Mf onSave={savMoto} onCancel={()=>setTela("estoque")}/></div>)}
+      {tela==="editar"&&edit&&(<div style={{background:"#fff",borderRadius:16,padding:24,border:"1.5px solid #eee"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <h2 style={{margin:0,fontSize:18}}>{editando.marca} {editando.modelo} · {editando.placa}</h2>
-          <button onClick={()=>deletarMoto(editando.id)} style={{background:"#fff",color:"#c62828",border:"1.5px solid #c62828",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>🗑️ Remover</button>
+          <h2 style={{margin:0,fontSize:18}}>{edit.marca} {edit.modelo} {edit.placa}</h2>
+          <button onClick={()=>delMoto(edit.id)} style={{background:"#fff",color:"#c62828",border:"1.5px solid #c62828",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontSize:12,fontWeight:700}}>Remover</button>
         </div>
-        <MotoForm initial={editando} onSave={salvarMoto} onCancel={()=>{setTela("estoque");setEditando(null);}}/>
+        <Mf initial={edit} onSave={savMoto} onCancel={()=>{setTela("estoque");setEdit(null);}}/>
       </div>)}
     </div>
   </div>);}
@@ -417,9 +404,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
-const CORES_CATS={"Anúncios":"#1565c0","Empréstimos":"#b71c1c","Aluguel":"#e65100","Despesas Loja":"#2e7d32","Sistemas":"#6a1b9a","Outros":"#37474f"};
-const lbl={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
-const inp={border:"1.5px solid #ddd",borderRadius:8,padding:"8px 10px",fontSize:14,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box"};
-const Field=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><input {...p} style={{...inp,...p.style}}/></div>);
-const Sel=({label,children,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><select {...p} style={{...inp,...p.style}}>{children}</select></div>);
-const TA=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><textarea {...p} style={{...inp,resize:"vertical",minHeight:64,...p.style}}/></div>);
