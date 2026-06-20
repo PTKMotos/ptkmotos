@@ -29,15 +29,36 @@ async function getOrCreateBin(name,initial){
   return id;
 }
 async function readBin(id){const res=await fetch(`https://api.jsonbin.io/v3/b/${id}/latest`,{headers:{"X-Master-Key":MASTER_KEY}});const d=await res.json();return d.record;}
-async function writeBin(id,data){await fetch(`https://api.jsonbin.io/v3/b/${id}`,{method:"PUT",headers:HEADERS,body:JSON.stringify(data)});}
-  const fmt=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+async function writeBin(id,data){await fetch(`https://api.jsonbin.io/v3/b/${id}`,{method:"PUT",headers:HEADERS,body:JSON.stringify(data)});}const fmt=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const fmtDate=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
 const today=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const mesAno=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR",{month:"short",year:"numeric"}):"";
 const CHECKLIST_ITEMS=["Documento OK","Sem Multas","IPVA Pago","Licenciamento Pago","Chave Reserva","Manual","Pneus Bons","Freios OK","Relação Boa","Motor Sem Vazamentos","Parte Elétrica OK","Suspensão OK","Carenagem OK","Pintura OK","Faróis e Setas OK"];
 const FORMAS_PGTO=["Pix","Dinheiro","Transferência","Financiamento","Cheque","Cartão","Outro"];
-const STATUS_CORES={"Em Estoque":{bg:"#e8f5e9",text:"#2e7d32"},"Vendida":{bfunction CustosForm({custos=[],onChange}){
+const STATUS_CORES={"Em Estoque":{bg:"#e8f5e9",text:"#2e7d32"},"Vendida":{bg:"#fce4ec",text:"#b71c1c"},"Em Reforma":{bg:"#fff8e1",text:"#f57f17"}};
+const CATEGORIAS_DESP=["Reforma/Mecânica","Documentação","Transporte","Limpeza/Estética","Outros"];
+const lbl={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
+const inp={border:"1.5px solid #ddd",borderRadius:8,padding:"8px 10px",fontSize:14,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box"};
+const Field=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><input {...p} style={{...inp,...p.style}}/></div>);
+const Sel=({label,children,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><select {...p} style={{...inp,...p.style}}>{children}</select></div>);
+const TA=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lbl}>{label}</label><textarea {...p} style={{...inp,resize:"vertical",minHeight:64,...p.style}}/></div>);
+function DocUpload({label,value,onChange}){
+  const toB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res({name:f.name,type:f.type,data:r.result});r.onerror=rej;r.readAsDataURL(f);});
+  const handle=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>3*1024*1024){alert("Máx 3MB");return;}onChange(await toB64(f));};
+  return(<div style={{display:"flex",flexDirection:"column",gap:6}}><label style={lbl}>{label}</label>
+    {!value?(<label style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,border:"2px dashed #ddd",borderRadius:10,padding:"16px 10px",cursor:"pointer",background:"#fafafa",color:"#aaa",fontSize:12}}>
+      <span style={{fontSize:24}}>📎</span><span>Clique para anexar</span><span style={{fontSize:10}}>JPG, PNG ou PDF · máx 3MB</span>
+      <input type="file" accept="image/*,application/pdf" onChange={handle} style={{display:"none"}}/></label>)
+    :(<div style={{border:"1.5px solid #ddd",borderRadius:10,overflow:"hidden",background:"#fafafa"}}>
+      {value.type?.startsWith("image/")&&<img src={value.data} alt="" style={{width:"100%",maxHeight:150,objectFit:"cover",display:"block"}}/>}
+      {value.type==="application/pdf"&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px"}}><span style={{fontSize:22}}>📄</span><span style={{fontSize:12,color:"#555",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{value.name}</span></div>}
+      <div style={{display:"flex",gap:8,padding:"6px 10px",borderTop:"1px solid #eee"}}>
+        <a href={value.data} download={value.name} style={{fontSize:11,color:"#1565c0",textDecoration:"none",fontWeight:600,flex:1}}>⬇️ Baixar</a>
+        <button onClick={()=>onChange(null)} style={{border:"none",background:"none",color:"#c62828",cursor:"pointer",fontSize:11,fontWeight:700}}>✕ Remover</button>
+      </div></div>)}
+  </div>);
+}function CustosForm({custos=[],onChange}){
   const [desc,setDesc]=useState("");const [cat,setCat]=useState(CATEGORIAS_DESP[0]);
   const [val,setVal]=useState("");const [data,setData]=useState(today());
   const add=()=>{if(!val||!desc)return;onChange([...custos,{id:uid(),desc,cat,val:Number(val),data}]);setDesc("");setVal("");};
@@ -61,8 +82,7 @@ const STATUS_CORES={"Em Estoque":{bg:"#e8f5e9",text:"#2e7d32"},"Vendida":{bfunct
         <span>Total custos</span><span style={{color:"#c62828"}}>{fmt(total)}</span>
       </div>
     </div>)}
-  </div>);
-}
+  </div>);}
 function MotoForm({initial,onSave,onCancel}){
   const blank={id:uid(),status:"Em Estoque",dataCadastro:today(),vendedorNome:"",vendedorCPF:"",vendedorRG:"",vendedorNascimento:"",vendedorEndereco:"",vendedorBairro:"",vendedorCEP:"",vendedorCidade:"",vendedorTelefone:"",vendedorCNH:null,vendedorComprovante:null,marca:"",modelo:"",placa:"",ano:"",chassi:"",renavam:"",cor:"",motor:"",km:"",valorCompra:"",formaPgtoCompra:"Pix",dataCompra:today(),checklist:Object.fromEntries(CHECKLIST_ITEMS.map(i=>[i,false])),observacoes:"",custos:[],compradorNome:"",compradorCPF:"",compradorTelefone:"",compradorCNH:null,compradorComprovante:null,valorVenda:"",formaPgtoVenda:"Pix",dataVenda:"",obsVenda:""};
   const [f,setF]=useState(initial||blank);
@@ -70,7 +90,9 @@ function MotoForm({initial,onSave,onCancel}){
   const setChk=(item,v)=>setF(p=>({...p,checklist:{...p.checklist,[item]:v}}));
   const [tab,setTab]=useState("compra");
   const exportChecklist=()=>{const chkLines=CHECKLIST_ITEMS.map(i=>`${f.checklist[i]?"[X]":"[ ]"} ${i}`).join("\n");const txt=`PTK MOTOS — CHECK LIST DE COMPRA\n================================\nDATA: ${fmtDate(f.dataCompra)}\n\nDADOS DO VENDEDOR\nNome: ${f.vendedorNome}\nCPF: ${f.vendedorCPF} RG: ${f.vendedorRG}\nTelefone: ${f.vendedorTelefone}\n\nDADOS DA MOTO\nMarca: ${f.marca} Modelo: ${f.modelo}\nPlaca: ${f.placa} Ano: ${f.ano} Cor: ${f.cor}\nChassi: ${f.chassi}\nRenavam: ${f.renavam}\nKM: ${f.km}\n\nNEGOCIAÇÃO\nValor de Compra: ${fmt(f.valorCompra)}\nForma: ${f.formaPgtoCompra}\n\nCHECK LIST\n${chkLines}\n\nOBSERVAÇÕES:\n${f.observacoes||"—"}`;const a=document.createElement("a");a.href="data:text/plain;charset=utf-8,"+encodeURIComponent(txt);a.download=`checklist_${f.placa||f.modelo||"moto"}.txt`;a.click();};
-  const TabBtn=({id,label})=>(<button onClick={()=>setTab(id)} style={{padding:"8px 14px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12return(<div style={{display:"flex",flexDirection:"column",gap:0}}>
+  const TabBtn=({id,label})=>(<button onClick={()=>setTab(id)} style={{padding:"8px 14px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===id?"#c62828":"transparent",color:tab===id?"#fff":"#666",whiteSpace:"nowrap"}}>{label}</button>);
+  const totalCustos=(f.custos||[]).reduce((s,c)=>s+Number(c.val),0);
+  const lucroLiq=f.valorVenda?Number(f.valorVenda)-Number(f.valorCompra||0)-totalCustos:null;return(<div style={{display:"flex",flexDirection:"column",gap:0}}>
     <div style={{display:"flex",gap:3,background:"#f5f5f5",borderRadius:10,padding:4,marginBottom:20,flexWrap:"wrap"}}>
       <TabBtn id="compra" label="📋 Compra"/><TabBtn id="checklist" label="✅ Checklist"/><TabBtn id="custos" label="🔧 Custos"/>
       {f.status==="Vendida"&&<TabBtn id="venda" label="🏷️ Venda"/>}
