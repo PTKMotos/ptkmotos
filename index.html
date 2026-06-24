@@ -41,24 +41,8 @@ const CD=["Reforma","Documentacao","Transporte","Limpeza","Outros"];
 const CC=["Anuncios","Emprestimos","Aluguel","Despesas Loja","Sistemas","Retirada Socios","Despesas Motos Pos Vendas","Despesas Motos Arrumar para Venda","Outros"];
 const CR={"Anuncios":"#1565c0","Emprestimos":"#b71c1c","Aluguel":"#e65100","Despesas Loja":"#2e7d32","Sistemas":"#6a1b9a","Retirada Socios":"#00838f","Despesas Motos Pos Vendas":"#f57f17","Despesas Motos Arrumar para Venda":"#558b2f","Outros":"#37474f"};
 const SM={green:{cor:"#2e7d32",bg:"#e8f5e9",label:"No prazo"},yellow:{cor:"#f57f17",bg:"#fff8e1",label:"Atencao"},red:{cor:"#b71c1c",bg:"#fce4ec",label:"Urgente"}};
-
-// ── Exportacao Excel ──────────────────────────────────────────────
-function exportExcel(dados,nomeArquivo,colunas){
-  const ws=XLSX.utils.json_to_sheet(dados.map(d=>{const obj={};colunas.forEach(([k,v])=>obj[k]=d[v]??d[v]);return obj;}));
-  const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,"Dados");XLSX.writeFile(wb2,nomeArquivo+".xlsx");
-}
-function exportExcelDireto(linhas,nomeArquivo){
-  const ws=XLSX.utils.json_to_sheet(linhas);
-  const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,"Dados");XLSX.writeFile(wb2,nomeArquivo+".xlsx");
-}
-
-// ── Exportacao PDF (HTML→Print) ───────────────────────────────────
-function exportPDF(titulo,html){
-  const w=window.open("","_blank");
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:12px}h1{color:#c62828;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{background:#c62828;color:#fff;padding:8px;text-align:left;font-size:11px}td{padding:7px 8px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9f9f9}.total{font-weight:700;background:#f5f5f5}</style></head><body>${html}</body></html>`);
-  w.document.close();w.focus();setTimeout(()=>{w.print();},500);
-}
-
+function exportExcelDireto(linhas,nomeArquivo){const ws=XLSX.utils.json_to_sheet(linhas);const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,"Dados");XLSX.writeFile(wb2,nomeArquivo+".xlsx");}
+function exportPDF(titulo,html){const w=window.open("","_blank");w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:12px}h1{color:#c62828;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{background:#c62828;color:#fff;padding:8px;text-align:left;font-size:11px}td{padding:7px 8px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9f9f9}.total{font-weight:700;background:#f5f5f5}</style></head><body>${html}</body></html>`);w.document.close();w.focus();setTimeout(()=>{w.print();},500);}
 const lb={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
 const ip={border:"1.5px solid #ddd",borderRadius:8,padding:"8px 10px",fontSize:14,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box"};
 const Fi=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:4}}><label style={lb}>{label}</label><input {...p} style={{...ip,...p.style}}/></div>);
@@ -108,7 +92,6 @@ function Mf({initial,onSave,onCancel}){
   const sk=(item,v)=>setF(p=>({...p,checklist:{...p.checklist,[item]:v}}));
   const[tab,setTab]=useState("compra");
   const ex=()=>{const cl=CL.map(i=>`${f.checklist[i]?"[X]":"[ ]"} ${i}`).join("\n");const tx="PTK MOTOS CHECK LIST\nDATA: "+fd(f.dataCompra)+"\nNome: "+f.vendedorNome+"\nCPF: "+f.vendedorCPF+"\nMarca: "+f.marca+" Modelo: "+f.modelo+"\nPlaca: "+f.placa+" Ano: "+f.ano+"\nChassi: "+f.chassi+"\nRenavam: "+f.renavam+"\nKM: "+f.km+"\nValor: "+fm(f.valorCompra)+"\n\nCHECK LIST\n"+cl+"\n\nOBS: "+(f.observacoes||"—");const a=document.createElement("a");a.href="data:text/plain;charset=utf-8,"+encodeURIComponent(tx);a.download="checklist_"+(f.placa||"moto")+".txt";a.click();};
-  const fipeUrl=()=>`https://www.fipe.org.br/pt-br/indices/veiculos/?tipoVeiculo=motocicleta`;
   const olxUrl=()=>`https://www.olx.com.br/motos-e-acessorios/motos?q=${encodeURIComponent((f.marca+" "+f.modelo).trim())}`;
   const Tb=({id,label})=>(<button onClick={()=>setTab(id)} style={{padding:"8px 14px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===id?"#c62828":"transparent",color:tab===id?"#fff":"#666",whiteSpace:"nowrap"}}>{label}</button>);
   const ct=custoTotal(f);const me=margemEsp(f);const mep=margemEspPct(f);const tc=(f.custos||[]).reduce((s,c)=>s+Number(c.val),0);const ll=f.valorVenda?margemReal(f):null;const llp=f.valorVenda?margemRealPct(f):null;
@@ -137,7 +120,7 @@ function Mf({initial,onSave,onCancel}){
       <div style={{height:1,background:"#eee"}}/>
       <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>DADOS DA MOTO</p>
       {f.marca&&f.modelo&&(<div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:4}}>
-        <a href={fipeUrl()} target="_blank" style={{padding:"6px 12px",background:"#1565c0",color:"#fff",borderRadius:8,fontSize:12,fontWeight:700,textDecoration:"none"}}>📊 Consultar FIPE</a>
+        <a href="https://www.fipe.org.br/pt-br/indices/veiculos/?tipoVeiculo=motocicleta" target="_blank" style={{padding:"6px 12px",background:"#1565c0",color:"#fff",borderRadius:8,fontSize:12,fontWeight:700,textDecoration:"none"}}>📊 Consultar FIPE</a>
         <a href={olxUrl()} target="_blank" style={{padding:"6px 12px",background:"#e65100",color:"#fff",borderRadius:8,fontSize:12,fontWeight:700,textDecoration:"none"}}>🔍 Buscar na OLX</a>
       </div>)}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -336,22 +319,13 @@ function Db({motos}){
   const todos=[...mv,...financeiro].sort((a,b)=>b.data.localeCompare(a.data));
   const en=todos.filter(x=>x.tipo==="Entrada").reduce((s,x)=>s+x.val,0);
   const sa=todos.filter(x=>x.tipo==="Saida").reduce((s,x)=>s+x.val,0);
-  const expExcel=()=>{
-    const linhas=todos.map(x=>({"Data":fd(x.data),"Descricao":x.desc,"Categoria":x.cat,"Tipo":x.tipo,"Valor":Number(x.val)}));
-    exportExcelDireto(linhas,"PTK_Financeiro");
-  };
-  const expPDF=()=>{
-    const rows=todos.map(x=>`<tr><td>${fd(x.data)}</td><td>${x.desc}</td><td>${x.cat}</td><td style="color:${x.tipo==="Entrada"?"#2e7d32":"#b71c1c"}">${x.tipo==="Entrada"?"+":"-"}${fm(x.val)}</td></tr>`).join("");
-    exportPDF("PTK Motos - Financeiro",`<h1>Financeiro — PTK Motos</h1><p>Gerado em ${fd(td())}</p><br><table><thead><tr><th>Data</th><th>Descricao</th><th>Categoria</th><th>Valor</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total"><td colspan="3">Saldo</td><td>${fm(en-sa)}</td></tr></tfoot></table>`);
-  };
+  const expExcel=()=>{const linhas=todos.map(x=>({"Data":fd(x.data),"Descricao":x.desc,"Categoria":x.cat,"Tipo":x.tipo,"Valor":Number(x.val)}));exportExcelDireto(linhas,"PTK_Financeiro");};
+  const expPDF=()=>{const rows=todos.map(x=>`<tr><td>${fd(x.data)}</td><td>${x.desc}</td><td>${x.cat}</td><td style="color:${x.tipo==="Entrada"?"#2e7d32":"#b71c1c"}">${x.tipo==="Entrada"?"+":"-"}${fm(x.val)}</td></tr>`).join("");exportPDF("PTK Motos - Financeiro",`<h1>Financeiro</h1><p>Gerado em ${fd(td())}</p><br><table><thead><tr><th>Data</th><th>Descricao</th><th>Categoria</th><th>Valor</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total"><td colspan="3">Saldo</td><td>${fm(en-sa)}</td></tr></tfoot></table>`);};
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
       {[["Entradas",en,"#2e7d32"],["Saidas",sa,"#b71c1c"],["Saldo",en-sa,(en-sa)>=0?"#1565c0":"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:c}}>{fm(v)}</p></div>))}
     </div>
-    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-      <BtnExp onClick={expExcel} label="📊 Excel" color="#1b5e20"/>
-      <BtnExp onClick={expPDF} label="📄 PDF" color="#b71c1c"/>
-    </div>
+    <div style={{display:"flex",gap:8}}><BtnExp onClick={expExcel} label="📊 Excel" color="#1b5e20"/><BtnExp onClick={expPDF} label="📄 PDF" color="#b71c1c"/></div>
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
       <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Lancamento manual</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -382,35 +356,10 @@ function Rl({motos}){
   const mb=pm[0];const ml=pm.length?pm.reduce((s,m)=>s+m.lu,0)/pm.length:0;const mlp=pm.length?pm.reduce((s,m)=>s+m.lup,0)/pm.length:0;const cd=pm.filter(m=>m.di!==null);const md=cd.length?cd.reduce((s,m)=>s+m.di,0)/cd.length:null;const mx=Math.max(...Object.values(pr).map(x=>Math.abs(x.lu)),1);
   const totalVendas=ve.reduce((s,m)=>s+Number(m.valorVenda||0),0);
   const estoqueOrdenado=[...motos.filter(m=>m.status!=="Vendida")].sort((a,b)=>margemEspPct(a)-margemEspPct(b));
-  const expEstoqueExcel=()=>{
-    const linhas=estoqueOrdenado.map(m=>({
-      "Marca":m.marca,"Modelo":m.modelo,"Placa":m.placa,"Ano":m.ano,"Cor":m.cor,
-      "Tipo Entrada":m.tipoEntrada||"Compra","Status":m.status,
-      "Custo Total":custoTotal(m),"Preco Pretendido":Number(m.precoVenda||0),
-      "Margem Esperada R$":margemEsp(m),"Margem %":fp(margemEspPct(m)),
-      "Dias no Estoque":diasNoEstoque(m)||0,"Semaforo":semaforo(m)||""
-    }));
-    exportExcelDireto(linhas,"PTK_Estoque");
-  };
-  const expVendasExcel=()=>{
-    const linhas=pm.map(m=>({
-      "Marca":m.marca,"Modelo":m.modelo,"Placa":m.placa,"Ano":m.ano,
-      "Tipo Entrada":m.tipoEntrada||"Compra",
-      "Data Compra":fd(m.dataCompra),"Data Venda":fd(m.dataVenda),
-      "Dias no Estoque":m.di||0,"Custo Total":m.ct,
-      "Valor Venda":Number(m.valorVenda||0),"Lucro":m.lu,"Margem %":fp(m.lup),
-      "Comprador":m.compradorNome||"","Vendedor":m.vendedorNome||""
-    }));
-    exportExcelDireto(linhas,"PTK_Vendas");
-  };
-  const expEstoquePDF=()=>{
-    const rows=estoqueOrdenado.map(m=>`<tr><td>${m.marca} ${m.modelo}</td><td>${m.placa}</td><td>${m.ano}</td><td>${m.status}</td><td>${fm(custoTotal(m))}</td><td>${fm(m.precoVenda||0)}</td><td style="color:${margemEspPct(m)>=10?"#2e7d32":margemEspPct(m)>=0?"#f57f17":"#b71c1c"}">${fp(margemEspPct(m))}</td><td>${diasNoEstoque(m)||0}d</td></tr>`).join("");
-    exportPDF("PTK Motos - Estoque",`<h1>Estoque — PTK Motos</h1><p>Gerado em ${fd(td())} | ${estoqueOrdenado.length} motos</p><br><table><thead><tr><th>Moto</th><th>Placa</th><th>Ano</th><th>Status</th><th>Custo</th><th>Preco</th><th>Margem</th><th>Dias</th></tr></thead><tbody>${rows}</tbody></table>`);
-  };
-  const expVendasPDF=()=>{
-    const rows=pm.map(m=>`<tr><td>${m.marca} ${m.modelo}</td><td>${m.placa}</td><td>${fd(m.dataVenda)}</td><td>${fm(m.ct)}</td><td>${fm(m.valorVenda||0)}</td><td style="color:${m.lu>=0?"#2e7d32":"#b71c1c"}">${fm(m.lu)}</td><td>${fp(m.lup)}</td><td>${m.di||0}d</td></tr>`).join("");
-    exportPDF("PTK Motos - Vendas",`<h1>Vendas — PTK Motos</h1><p>Gerado em ${fd(td())} | ${pm.length} motos vendidas</p><br><table><thead><tr><th>Moto</th><th>Placa</th><th>Data Venda</th><th>Custo</th><th>Venda</th><th>Lucro</th><th>Margem</th><th>Dias</th></tr></thead><tbody>${rows}</tbody></table>`);
-  };
+  const expEstoqueExcel=()=>{const linhas=estoqueOrdenado.map(m=>({"Marca":m.marca,"Modelo":m.modelo,"Placa":m.placa,"Ano":m.ano,"Status":m.status,"Tipo":m.tipoEntrada||"Compra","Custo Total":custoTotal(m),"Preco Pretendido":Number(m.precoVenda||0),"Margem R$":margemEsp(m),"Margem %":fp(margemEspPct(m)),"Dias Estoque":diasNoEstoque(m)||0}));exportExcelDireto(linhas,"PTK_Estoque");};
+  const expVendasExcel=()=>{const linhas=pm.map(m=>({"Marca":m.marca,"Modelo":m.modelo,"Placa":m.placa,"Tipo":m.tipoEntrada||"Compra","Data Compra":fd(m.dataCompra),"Data Venda":fd(m.dataVenda),"Dias":m.di||0,"Custo":m.ct,"Venda":Number(m.valorVenda||0),"Lucro":m.lu,"Margem %":fp(m.lup),"Comprador":m.compradorNome||""}));exportExcelDireto(linhas,"PTK_Vendas");};
+  const expEstoquePDF=()=>{const rows=estoqueOrdenado.map(m=>`<tr><td>${m.marca} ${m.modelo}</td><td>${m.placa}</td><td>${m.status}</td><td>${fm(custoTotal(m))}</td><td>${fm(m.precoVenda||0)}</td><td style="color:${margemEspPct(m)>=10?"#2e7d32":margemEspPct(m)>=0?"#f57f17":"#b71c1c"}">${fp(margemEspPct(m))}</td><td>${diasNoEstoque(m)||0}d</td></tr>`).join("");exportPDF("Estoque PTK",`<h1>Estoque</h1><p>${estoqueOrdenado.length} motos — ${fd(td())}</p><br><table><thead><tr><th>Moto</th><th>Placa</th><th>Status</th><th>Custo</th><th>Preco</th><th>Margem</th><th>Dias</th></tr></thead><tbody>${rows}</tbody></table>`);};
+  const expVendasPDF=()=>{const rows=pm.map(m=>`<tr><td>${m.marca} ${m.modelo}</td><td>${m.placa}</td><td>${fd(m.dataVenda)}</td><td>${fm(m.ct)}</td><td>${fm(m.valorVenda||0)}</td><td style="color:${m.lu>=0?"#2e7d32":"#b71c1c"}">${fm(m.lu)}</td><td>${fp(m.lup)}</td><td>${m.di||0}d</td></tr>`).join("");exportPDF("Vendas PTK",`<h1>Vendas</h1><p>${pm.length} motos — ${fd(td())}</p><br><table><thead><tr><th>Moto</th><th>Placa</th><th>Data</th><th>Custo</th><th>Venda</th><th>Lucro</th><th>Margem</th><th>Dias</th></tr></thead><tbody>${rows}</tbody></table>`);};
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
       <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:18}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Lucro medio por moto</p><p style={{margin:"6px 0 0",fontSize:22,fontWeight:900,color:ml>=0?"#2e7d32":"#b71c1c"}}>{fm(ml)}</p><p style={{margin:"2px 0 0",fontSize:12,color:"#aaa"}}>Margem media: {fp(mlp)}</p></div>
@@ -441,7 +390,7 @@ function Rl({motos}){
         {estoqueOrdenado.length===0&&<p style={{color:"#aaa",fontSize:13,textAlign:"center",padding:"20px 0"}}>Nenhuma moto no estoque.</p>}
         {estoqueOrdenado.map(m=>{const mep=margemEspPct(m);const dias=diasNoEstoque(m);const sm=semaforo(m);return(<div key={m.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}}>
           <span style={{fontSize:18,minWidth:24}}>{sm==="red"?"🔴":sm==="yellow"?"🟡":"🟢"}</span>
-          <div style={{flex:1}}><p style={{margin:0,fontWeight:700,fontSize:13}}>{m.marca} {m.modelo} <span style={{fontSize:11,color:"#888"}}>{m.placa}</span></p><p style={{margin:"2px 0 0",fontSize:11,color:"#aaa"}}>Custo: {fm(custoTotal(m))} — Preco: {fm(m.precoVenda||0)} — {dias!==null?dias+" dias":""}</p></div>
+          <div style={{flex:1}}><p style={{margin:0,fontWeight:700,fontSize:13}}>{m.marca} {m.modelo} <span style={{fontSize:11,color:"#888"}}>{m.placa}</span></p><p style={{margin:"2px 0 0",fontSize:11,color:"#aaa"}}>Custo:{fm(custoTotal(m))} Preco:{fm(m.precoVenda||0)} {dias!==null?dias+"d":""}</p></div>
           <div style={{textAlign:"right"}}><p style={{margin:0,fontWeight:800,fontSize:14,color:mep>=10?"#2e7d32":mep>=0?"#f57f17":"#b71c1c"}}>{fp(mep)}</p><p style={{margin:0,fontSize:11,color:"#aaa"}}>{fm(margemEsp(m))}</p></div>
         </div>);})}
       </div>)}
@@ -467,75 +416,61 @@ function Rl({motos}){
     const mediaDias=mediaVendaDias.length?Math.round(mediaVendaDias.reduce((a,b)=>a+b,0)/mediaVendaDias.length):30;
     const marcasVendidas={};vendidas.forEach(m=>{if(!marcasVendidas[m.marca])marcasVendidas[m.marca]=[];marcasVendidas[m.marca].push(m);});
     const marcaMaisVendida=Object.entries(marcasVendidas).sort((a,b)=>b[1].length-a[1].length)[0];
-    const prompt=`Voce e um consultor especialista em revendas de motos usadas no Brasil.
-Analise os dados abaixo da loja PTK Motos e gere sugestoes praticas e especificas para cada moto no estoque.
-
-HISTORICO DE VENDAS:
-- Total de motos vendidas: ${vendidas.length}
-- Tempo medio de venda: ${mediaDias} dias
-- Marca mais vendida: ${marcaMaisVendida?marcaMaisVendida[0]+" ("+marcaMaisVendida[1].length+" vendas)":"sem dados"}
-- Margem media real: ${vendidas.length?fp(vendidas.reduce((s,m)=>s+margemRealPct(m),0)/vendidas.length):"sem dados"}
-
-ESTOQUE ATUAL (${estoque.length} motos):
-${estoque.map(m=>{const dias=diasNoEstoque(m);const mep=margemEspPct(m);return`- ${m.marca} ${m.modelo} ${m.placa}: custo ${fm(custoTotal(m))}, preco pretendido ${fm(m.precoVenda||0)}, margem ${fp(mep)}, ${dias!==null?dias+" dias no estoque":"data nao informada"}, entrada por ${m.tipoEntrada||"Compra"}`;}).join("\n")}
-
-Para cada moto do estoque, gere UMA sugestao pratica e direta. Responda APENAS em JSON no formato:
-[{"placa":"XXX","moto":"Marca Modelo","sugestao":"texto da sugestao","urgencia":"alta|media|baixa"}]
-Sem explicacoes, sem markdown, apenas o JSON puro.`;
+    const prompt=`Voce e um consultor especialista em revendas de motos usadas no Brasil. Analise os dados da loja PTK Motos e gere sugestoes praticas para cada moto no estoque.\n\nHISTORICO:\n- Motos vendidas: ${vendidas.length}\n- Tempo medio de venda: ${mediaDias} dias\n- Marca mais vendida: ${marcaMaisVendida?marcaMaisVendida[0]+" ("+marcaMaisVendida[1].length+" vendas)":"sem dados"}\n- Margem media: ${vendidas.length?fp(vendidas.reduce((s,m)=>s+margemRealPct(m),0)/vendidas.length):"sem dados"}\n\nESTOQUE (${estoque.length} motos):\n${estoque.map(m=>`- ${m.marca} ${m.modelo} ${m.placa}: custo ${fm(custoTotal(m))}, preco ${fm(m.precoVenda||0)}, margem ${fp(margemEspPct(m))}, ${diasNoEstoque(m)!==null?diasNoEstoque(m)+" dias":"sem data"}, entrada: ${m.tipoEntrada||"Compra"}`).join("\n")}\n\nPara cada moto gere UMA sugestao pratica. Responda APENAS JSON:\n[{"placa":"XXX","moto":"Marca Modelo","sugestao":"texto","urgencia":"alta|media|baixa"}]`;
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
       const data=await res.json();
       const txt=data.content?.map(x=>x.text||"").join("").trim();
       const clean=txt.replace(/```json|```/g,"").trim();
-      const parsed=JSON.parse(clean);
-      setSugestoes(parsed);setGerado(true);
-    }catch(e){setSugestoes([{placa:"—",moto:"Erro",sugestao:"Nao foi possivel gerar sugestoes. Tente novamente.",urgencia:"baixa"}]);setGerado(true);}
+      setSugestoes(JSON.parse(clean));setGerado(true);
+    }catch(e){setSugestoes([{placa:"—",moto:"Erro",sugestao:"Nao foi possivel gerar sugestoes.",urgencia:"baixa"}]);setGerado(true);}
     setLoading(false);
   };
-  const corUrgencia={alta:"#b71c1c",media:"#f57f17",baixa:"#2e7d32"};
-  const bgUrgencia={alta:"#fce4ec",media:"#fff8e1",baixa:"#e8f5e9"};
+  const corU={alta:"#b71c1c",media:"#f57f17",baixa:"#2e7d32"};
+  const bgU={alta:"#fce4ec",media:"#fff8e1",baixa:"#e8f5e9"};
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-        <span style={{fontSize:32}}>🤖</span>
-        <div><p style={{margin:0,fontWeight:800,fontSize:16}}>Consultor IA — PTK Motos</p><p style={{margin:0,fontSize:13,color:"#888"}}>Analisa seu estoque e historico para sugerir acoes especificas</p></div>
-      </div>
-      <button onClick={analisar} disabled={loading} style={{padding:"11px 24px",border:"none",borderRadius:10,background:loading?"#aaa":"#c62828",color:"#fff",fontWeight:700,cursor:loading?"not-allowed":"pointer",fontSize:14,width:"100%"}}>
-        {loading?"Analisando...":"🔍 Analisar estoque e gerar sugestoes"}
-      </button>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}><span style={{fontSize:32}}>🤖</span><div><p style={{margin:0,fontWeight:800,fontSize:16}}>Consultor IA</p><p style={{margin:0,fontSize:13,color:"#888"}}>Analisa estoque e historico para sugerir acoes</p></div></div>
+      <button onClick={analisar} disabled={loading} style={{padding:"11px 24px",border:"none",borderRadius:10,background:loading?"#aaa":"#c62828",color:"#fff",fontWeight:700,cursor:loading?"not-allowed":"pointer",fontSize:14,width:"100%"}}>{loading?"Analisando...":"🔍 Analisar e gerar sugestoes"}</button>
     </div>
-    {gerado&&sugestoes.length>0&&(<div style={{display:"flex",flexDirection:"column",gap:10}}>
-      <p style={{margin:0,fontWeight:700,fontSize:14,color:"#333"}}>Sugestoes para seu estoque:</p>
-      {sugestoes.map((s,i)=>(<div key={i} style={{background:bgUrgencia[s.urgencia]||"#f9f9f9",border:"1.5px solid "+(corUrgencia[s.urgencia]||"#eee")+"44",borderRadius:12,padding:16}}>
+    {gerado&&(<div style={{display:"flex",flexDirection:"column",gap:10}}>
+      {sugestoes.map((s,i)=>(<div key={i} style={{background:bgU[s.urgencia]||"#f9f9f9",border:"1.5px solid "+(corU[s.urgencia]||"#eee")+"44",borderRadius:12,padding:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-          <p style={{margin:0,fontWeight:700,fontSize:14}}>{s.moto} <span style={{fontSize:11,color:"#888",fontWeight:400}}>{s.placa}</span></p>
-          <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:10,background:corUrgencia[s.urgencia]||"#888",color:"#fff",whiteSpace:"nowrap"}}>{s.urgencia?.toUpperCase()}</span>
+          <p style={{margin:0,fontWeight:700,fontSize:14}}>{s.moto} <span style={{fontSize:11,color:"#888"}}>{s.placa}</span></p>
+          <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:10,background:corU[s.urgencia]||"#888",color:"#fff"}}>{s.urgencia?.toUpperCase()}</span>
         </div>
         <p style={{margin:0,fontSize:13,color:"#333",lineHeight:1.5}}>{s.sugestao}</p>
       </div>))}
     </div>)}
   </div>);}
 function Co({contas,onSave}){
-  const[ca,setCa]=useState("Todas");const[nd,setNd]=useState("");const[nc,setNc]=useState(CC[0]);const[nv,setNv]=useState("");const[nvn,setNvn]=useState("");const[np,setNp]=useState("");const[nf,setNf]=useState(false);
+  const[ca,setCa]=useState("Todas");
+  const[nd,setNd]=useState("");const[nc,setNc]=useState(CC[0]);const[nv,setNv]=useState("");
+  const[nvn,setNvn]=useState("");const[np,setNp]=useState("");const[nf,setNf]=useState(false);
+  const[verDetalhes,setVerDetalhes]=useState(false);
   const add=()=>{if(!nd||!nv)return;onSave([...contas,{id:uid(),desc:nd,cat:nc,val:Number(nv),vencimento:nvn,dataPgto:np,pago:!!np,fixa:nf}]);setNd("");setNv("");setNvn("");setNp("");setNf(false);};
   const tg=(id)=>onSave(contas.map(c=>c.id===id?{...c,pago:!c.pago,dataPgto:!c.pago?td():""}:c));
   const rm=(id)=>{if(!confirm("Remover?"))return;onSave(contas.filter(c=>c.id!==id));};
   const up=(id,k,v)=>onSave(contas.map(c=>c.id===id?{...c,[k]:v}:c));
   const fl=ca==="Todas"?contas:contas.filter(c=>c.cat===ca);
-  const tg2=contas.reduce((s,c)=>s+Number(c.val),0);
+  const totalGeral=contas.reduce((s,c)=>s+Number(c.val),0);
   const tp=contas.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);
   const tpn=contas.filter(c=>!c.pago).reduce((s,c)=>s+Number(c.val),0);
   const hoje=td();
   const venc=contas.filter(c=>!c.pago&&c.vencimento&&c.vencimento<=hoje);
-  const pc=CC.map(ct=>({ct,tot:contas.filter(c=>c.cat===ct).reduce((s,c)=>s+Number(c.val),0),pg:contas.filter(c=>c.cat===ct&&c.pago).reduce((s,c)=>s+Number(c.val),0)})).filter(x=>x.tot>0);
+  const pc=CC.map(ct=>{
+    const itens=contas.filter(c=>c.cat===ct);
+    const tot=itens.reduce((s,c)=>s+Number(c.val),0);
+    const pg=itens.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);
+    const pct=totalGeral>0?(tot/totalGeral*100):0;
+    return{ct,tot,pg,pct,itens};
+  }).filter(x=>x.tot>0).sort((a,b)=>b.tot-a.tot);
   const mx=Math.max(...pc.map(x=>x.tot),1);
-  const expExcel=()=>{
-    const linhas=contas.map(c=>({"Descricao":c.desc,"Categoria":c.cat,"Valor":Number(c.val),"Vencimento":fd(c.vencimento),"Pago":c.pago?"Sim":"Nao","Data Pagamento":fd(c.dataPgto),"Fixa":c.fixa?"Sim":"Nao"}));
-    exportExcelDireto(linhas,"PTK_Contas");
-  };
+  const expExcel=()=>{const linhas=contas.map(c=>({"Descricao":c.desc,"Categoria":c.cat,"Valor":Number(c.val),"Vencimento":fd(c.vencimento),"Pago":c.pago?"Sim":"Nao","Data Pagamento":fd(c.dataPgto),"Fixa":c.fixa?"Sim":"Nao"}));exportExcelDireto(linhas,"PTK_Contas");};
   const expPDF=()=>{
-    const rows=contas.map(c=>`<tr><td>${c.desc}</td><td>${c.cat}</td><td>${fm(c.val)}</td><td>${fd(c.vencimento)}</td><td style="color:${c.pago?"#2e7d32":"#b71c1c"}">${c.pago?"Pago":"Pendente"}</td><td>${fd(c.dataPgto)}</td></tr>`).join("");
-    exportPDF("PTK Motos - Contas",`<h1>Contas — PTK Motos</h1><p>Gerado em ${fd(td())} | Total: ${fm(tg2)} | Pago: ${fm(tp)} | Pendente: ${fm(tpn)}</p><br><table><thead><tr><th>Descricao</th><th>Categoria</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Pago em</th></tr></thead><tbody>${rows}</tbody></table>`);
+    const rowsCat=pc.map(x=>`<tr><td><b>${x.ct}</b></td><td>${fm(x.tot)}</td><td>${fp(x.pct)}</td><td>${fm(x.pg)}</td><td style="color:#b71c1c">${fm(x.tot-x.pg)}</td></tr>`).join("");
+    const rowsItens=contas.map(c=>`<tr><td>${c.desc}</td><td>${c.cat}</td><td>${fm(c.val)}</td><td>${totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"}</td><td style="color:${c.pago?"#2e7d32":"#b71c1c"}">${c.pago?"Pago":"Pendente"}</td><td>${fd(c.vencimento)}</td></tr>`).join("");
+    exportPDF("PTK Motos - Contas",`<h1>Contas</h1><p>Total: ${fm(totalGeral)} | Pago: ${fm(tp)} | Pendente: ${fm(tpn)}</p><br><h2 style="color:#c62828;font-size:14px">Por Categoria</h2><table><thead><tr><th>Categoria</th><th>Total</th><th>% do Total</th><th>Pago</th><th>Pendente</th></tr></thead><tbody>${rowsCat}</tbody></table><br><h2 style="color:#c62828;font-size:14px">Detalhamento</h2><table><thead><tr><th>Descricao</th><th>Categoria</th><th>Valor</th><th>% do Total</th><th>Status</th><th>Vencimento</th></tr></thead><tbody>${rowsItens}</tbody></table>`);
   };
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     {venc.length>0&&(<div style={{background:"#fff3e0",border:"1.5px solid #ffa000",borderRadius:14,padding:16}}>
@@ -543,18 +478,39 @@ function Co({contas,onSave}){
       {venc.map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #ffe0b2"}}><span>{c.desc} <span style={{fontSize:11,color:"#888"}}>({c.cat})</span></span><span style={{fontWeight:700,color:"#b71c1c"}}>{fm(c.val)}</span></div>))}
     </div>)}
     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-      {[["Total",tg2,"#37474f"],["Pago",tp,"#2e7d32"],["Pendente",tpn,"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:c}}>{fm(v)}</p></div>))}
+      {[["Total",totalGeral,"#37474f"],["Pago",tp,"#2e7d32"],["Pendente",tpn,"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:c}}>{fm(v)}</p></div>))}
     </div>
     <div style={{display:"flex",gap:8}}><BtnExp onClick={expExcel} label="📊 Excel" color="#1b5e20"/><BtnExp onClick={expPDF} label="📄 PDF" color="#b71c1c"/></div>
     {pc.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
-      <p style={{margin:"0 0 14px",fontWeight:700,fontSize:14}}>Gastos por categoria</p>
-      {pc.map(x=>(<div key={x.ct} style={{marginBottom:12}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{fontSize:13,fontWeight:600,color:CR[x.ct]||"#333"}}>{x.ct}</span><span style={{fontSize:13,fontWeight:700}}>{fm(x.tot)}</span></div>
-        <div style={{background:"#f0f0f0",borderRadius:20,height:12,overflow:"hidden",position:"relative"}}>
-          <div style={{width:(x.tot/mx*100)+"%",height:"100%",background:CR[x.ct]||"#888",borderRadius:20,opacity:.3,position:"absolute"}}/>
-          <div style={{width:(x.pg/mx*100)+"%",height:"100%",background:CR[x.ct]||"#888",borderRadius:20,position:"absolute"}}/>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <p style={{margin:0,fontWeight:700,fontSize:14}}>Gastos por categoria</p>
+        <button onClick={()=>setVerDetalhes(!verDetalhes)} style={{padding:"5px 12px",border:"1.5px solid #ddd",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12,fontWeight:600,color:"#555"}}>{verDetalhes?"Ocultar detalhes":"Ver por conta"}</button>
+      </div>
+      {pc.map(x=>(<div key={x.ct} style={{marginBottom:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+          <span style={{fontSize:13,fontWeight:700,color:CR[x.ct]||"#333"}}>{x.ct}</span>
+          <div style={{textAlign:"right"}}>
+            <span style={{fontSize:13,fontWeight:800}}>{fm(x.tot)}</span>
+            <span style={{fontSize:12,fontWeight:700,color:"#888",marginLeft:8,background:"#f5f5f5",padding:"2px 8px",borderRadius:10}}>{fp(x.pct)} do total</span>
+          </div>
         </div>
-        <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}><span style={{fontSize:11,color:"#aaa"}}>Pago: {fm(x.pg)}</span><span style={{fontSize:11,color:"#c62828"}}>Pendente: {fm(x.tot-x.pg)}</span></div>
+        <div style={{background:"#f0f0f0",borderRadius:20,height:12,overflow:"hidden",position:"relative"}}>
+          <div style={{width:fp(x.tot/mx*100),height:"100%",background:CR[x.ct]||"#888",borderRadius:20,opacity:.25,position:"absolute"}}/>
+          <div style={{width:fp(x.pg/mx*100),height:"100%",background:CR[x.ct]||"#888",borderRadius:20,position:"absolute"}}/>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
+          <span style={{fontSize:11,color:"#aaa"}}>Pago: {fm(x.pg)}</span>
+          <span style={{fontSize:11,color:"#c62828"}}>Pendente: {fm(x.tot-x.pg)}</span>
+        </div>
+        {verDetalhes&&x.itens.length>0&&(<div style={{marginTop:8,paddingLeft:12,borderLeft:"3px solid "+(CR[x.ct]||"#ddd")}}>
+          {x.itens.map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"1px solid #f5f5f5",fontSize:12}}>
+            <span style={{color:c.pago?"#888":"#333",textDecoration:c.pago?"line-through":"none"}}>{c.desc}</span>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <span style={{color:"#888",fontSize:11}}>{totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"}</span>
+              <span style={{fontWeight:700,color:c.pago?"#2e7d32":"#c62828"}}>{fm(c.val)}</span>
+            </div>
+          </div>))}
+        </div>)}
       </div>))}
     </div>)}
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
@@ -580,14 +536,17 @@ function Co({contas,onSave}){
         <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
           <button onClick={()=>tg(c.id)} style={{width:22,height:22,borderRadius:"50%",border:"2px solid "+(c.pago?"#43a047":(!c.pago&&c.vencimento&&c.vencimento<=hoje)?"#ffa000":"#ddd"),background:c.pago?"#43a047":"#fff",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>{c.pago?"V":""}</button>
           <div style={{flex:1}}>
-            <div style={{display:"flex",justifyContent:"space-between"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div>
                 <span style={{fontWeight:700,fontSize:14,color:c.pago?"#888":"#1a1a1a",textDecoration:c.pago?"line-through":"none"}}>{c.desc}</span>
                 {c.fixa&&<span style={{marginLeft:6,fontSize:10,background:"#e3f2fd",color:"#1565c0",padding:"2px 6px",borderRadius:10,fontWeight:700}}>FIXA</span>}
                 {!c.pago&&c.vencimento&&c.vencimento<=hoje&&<span style={{marginLeft:6,fontSize:10,background:"#fff3e0",color:"#e65100",padding:"2px 6px",borderRadius:10,fontWeight:700}}>VENCIDA</span>}
                 <span style={{marginLeft:6,fontSize:10,background:(CR[c.cat]||"#888")+"22",color:CR[c.cat]||"#333",padding:"2px 6px",borderRadius:10,fontWeight:700}}>{c.cat}</span>
               </div>
-              <span style={{fontWeight:800,fontSize:15,color:c.pago?"#2e7d32":"#c62828"}}>{fm(c.val)}</span>
+              <div style={{textAlign:"right"}}>
+                <span style={{fontWeight:800,fontSize:15,color:c.pago?"#2e7d32":"#c62828"}}>{fm(c.val)}</span>
+                <span style={{display:"block",fontSize:11,color:"#888",fontWeight:600}}>{totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"} do total</span>
+              </div>
             </div>
             <div style={{display:"flex",gap:16,marginTop:6,flexWrap:"wrap"}}>
               <div style={{display:"flex",flexDirection:"column",gap:2}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>VENCIMENTO</span><input type="date" value={c.vencimento||""} onChange={e=>up(c.id,"vencimento",e.target.value)} style={{border:"1px solid #eee",borderRadius:6,padding:"3px 6px",fontSize:12,outline:"none"}}/></div>
