@@ -38,7 +38,31 @@ const fp=v=>Number(v||0).toFixed(1)+"%";
 const fd=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
 const td=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const ma=d=>d?new Date(d+"T12:00:00").toLocaleDateStrfunction Du({label,value,onChange}){
+const ma=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR",{month:"short",year:"numeric"}):"";
+const diasNoEstoque=(m)=>{if(!m.dataCompra||m.status==="Vendida")return null;const diff=new Date()-new Date(m.dataCompra+"T12:00:00");return Math.floor(diff/86400000);};
+const semaforo=(m)=>{const dias=diasNoEstoque(m);const mep=custoTotal(m)>0?(margemEsp(m)/custoTotal(m))*100:0;if(dias===null)return null;if(dias>60)return"red";if(dias>30||mep<10)return"yellow";return"green";};
+const custoTotal=(m)=>Number(m.valorCompra||0)+(m.custos||[]).reduce((s,c)=>s+Number(c.val),0);
+const margemEsp=(m)=>Number(m.precoVenda||0)-custoTotal(m);
+const margemEspPct=(m)=>custoTotal(m)>0?(margemEsp(m)/custoTotal(m))*100:0;
+const margemReal=(m)=>Number(m.valorVenda||0)-custoTotal(m);
+const margemRealPct=(m)=>custoTotal(m)>0?(margemReal(m)/custoTotal(m))*100:0;
+const diasAteVencer=(c)=>{if(!c.vencimento||c.pago)return null;const diff=new Date(c.vencimento+"T12:00:00")-new Date();return Math.ceil(diff/86400000);};
+const CL=["Documento OK","Sem Multas","IPVA Pago","Licenciamento Pago","Chave Reserva","Manual","Pneus Bons","Freios OK","Relacao Boa","Motor Sem Vazamentos","Parte Eletrica OK","Suspensao OK","Carenagem OK","Pintura OK","Farois e Setas OK"];
+const FP=["Pix","Dinheiro","Transferencia","Financiamento","Cheque","Cartao","Outro"];
+const SC={"Em Estoque":{bg:"#e8f5e9",tx:"#2e7d32"},"Vendida":{bg:"#fce4ec",tx:"#b71c1c"},"Em Reforma":{bg:"#fff8e1",tx:"#f57f17"}};
+const CD=["Reforma","Documentacao","Transporte","Limpeza","Outros"];
+const CC=["Anuncios","Emprestimos","Aluguel","Despesas Loja","Sistemas","Retirada Socios","Despesas Motos Pos Vendas","Despesas Motos Arrumar para Venda","Outros"];
+const CR={"Anuncios":"#1565c0","Emprestimos":"#b71c1c","Aluguel":"#e65100","Despesas Loja":"#2e7d32","Sistemas":"#6a1b9a","Retirada Socios":"#00838f","Despesas Motos Pos Vendas":"#f57f17","Despesas Motos Arrumar para Venda":"#558b2f","Outros":"#37474f"};
+const SM={green:{cor:"#2e7d32",bg:"#e8f5e9",label:"OK"},yellow:{cor:"#f57f17",bg:"#fff8e1",label:"Atencao"},red:{cor:"#b71c1c",bg:"#fce4ec",label:"Urgente"}};
+function exportExcelDireto(linhas,nome){const ws=XLSX.utils.json_to_sheet(linhas);const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,"Dados");XLSX.writeFile(wb2,nome+".xlsx");}
+function exportPDF(titulo,html){const w=window.open("","_blank");w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:12px}h1{color:#c62828;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{background:#c62828;color:#fff;padding:8px;text-align:left;font-size:11px}td{padding:7px 8px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9f9f9}.total{font-weight:700;background:#f5f5f5}</style></head><body>${html}</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),500);}
+const lb={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
+const ip={border:"1.5px solid #ddd",borderRadius:10,padding:"10px 12px",fontSize:16,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box",WebkitAppearance:"none"};
+const Fi=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={lb}>{label}</label><input {...p} style={{...ip,...p.style}}/></div>);
+const Se=({label,children,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={lb}>{label}</label><select {...p} style={{...ip,...p.style}}>{children}</select></div>);
+const Ta=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={lb}>{label}</label><textarea {...p} style={{...ip,resize:"vertical",minHeight:72,...p.style}}/></div>);
+const BtnExp=({onClick,label,color})=>(<button onClick={onClick} style={{padding:"8px 16px",border:"none",borderRadius:8,background:color||"#37474f",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>{label}</button>);
+const Btn=({onClick,label,color,full,disabled})=>(<button onClick={onClick} disabled={disabled} style={{padding:"12px 20px",border:"none",borderRadius:10,background:disabled?"#ccc":color||"#c62828",color:"#fff",fontWeight:700,cursor:disabled?"not-allowed":"pointer",fontSize:14,width:full?"100%":"auto",touchAction:"manipulation"}}>{label}</button>);function Du({label,value,onChange}){
   const tb=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res({name:f.name,type:f.type,data:r.result});r.onerror=rej;r.readAsDataURL(f);});
   const h=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>3*1024*1024){alert("Max 3MB");return;}onChange(await tb(f));};
   return(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={lb}>{label}</label>
@@ -641,28 +665,4 @@ function Co({contas,onSave}){
 ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
-</html>ing("pt-BR",{month:"short",year:"numeric"}):"";
-const diasNoEstoque=(m)=>{if(!m.dataCompra||m.status==="Vendida")return null;const diff=new Date()-new Date(m.dataCompra+"T12:00:00");return Math.floor(diff/86400000);};
-const semaforo=(m)=>{const dias=diasNoEstoque(m);const mep=custoTotal(m)>0?(margemEsp(m)/custoTotal(m))*100:0;if(dias===null)return null;if(dias>60)return"red";if(dias>30||mep<10)return"yellow";return"green";};
-const custoTotal=(m)=>Number(m.valorCompra||0)+(m.custos||[]).reduce((s,c)=>s+Number(c.val),0);
-const margemEsp=(m)=>Number(m.precoVenda||0)-custoTotal(m);
-const margemEspPct=(m)=>custoTotal(m)>0?(margemEsp(m)/custoTotal(m))*100:0;
-const margemReal=(m)=>Number(m.valorVenda||0)-custoTotal(m);
-const margemRealPct=(m)=>custoTotal(m)>0?(margemReal(m)/custoTotal(m))*100:0;
-const diasAteVencer=(c)=>{if(!c.vencimento||c.pago)return null;const diff=new Date(c.vencimento+"T12:00:00")-new Date();return Math.ceil(diff/86400000);};
-const CL=["Documento OK","Sem Multas","IPVA Pago","Licenciamento Pago","Chave Reserva","Manual","Pneus Bons","Freios OK","Relacao Boa","Motor Sem Vazamentos","Parte Eletrica OK","Suspensao OK","Carenagem OK","Pintura OK","Farois e Setas OK"];
-const FP=["Pix","Dinheiro","Transferencia","Financiamento","Cheque","Cartao","Outro"];
-const SC={"Em Estoque":{bg:"#e8f5e9",tx:"#2e7d32"},"Vendida":{bg:"#fce4ec",tx:"#b71c1c"},"Em Reforma":{bg:"#fff8e1",tx:"#f57f17"}};
-const CD=["Reforma","Documentacao","Transporte","Limpeza","Outros"];
-const CC=["Anuncios","Emprestimos","Aluguel","Despesas Loja","Sistemas","Retirada Socios","Despesas Motos Pos Vendas","Despesas Motos Arrumar para Venda","Outros"];
-const CR={"Anuncios":"#1565c0","Emprestimos":"#b71c1c","Aluguel":"#e65100","Despesas Loja":"#2e7d32","Sistemas":"#6a1b9a","Retirada Socios":"#00838f","Despesas Motos Pos Vendas":"#f57f17","Despesas Motos Arrumar para Venda":"#558b2f","Outros":"#37474f"};
-const SM={green:{cor:"#2e7d32",bg:"#e8f5e9",label:"OK"},yellow:{cor:"#f57f17",bg:"#fff8e1",label:"Atencao"},red:{cor:"#b71c1c",bg:"#fce4ec",label:"Urgente"}};
-function exportExcelDireto(linhas,nome){const ws=XLSX.utils.json_to_sheet(linhas);const wb2=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb2,ws,"Dados");XLSX.writeFile(wb2,nome+".xlsx");}
-function exportPDF(titulo,html){const w=window.open("","_blank");w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:12px}h1{color:#c62828;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{background:#c62828;color:#fff;padding:8px;text-align:left;font-size:11px}td{padding:7px 8px;border-bottom:1px solid #eee}tr:nth-child(even){background:#f9f9f9}.total{font-weight:700;background:#f5f5f5}</style></head><body>${html}</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),500);}
-const lb={fontSize:11,fontWeight:700,color:"#666",textTransform:"uppercase",letterSpacing:".5px"};
-const ip={border:"1.5px solid #ddd",borderRadius:10,padding:"10px 12px",fontSize:16,outline:"none",background:"#fafafa",width:"100%",boxSizing:"border-box",WebkitAppearance:"none"};
-const Fi=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={lb}>{label}</label><input {...p} style={{...ip,...p.style}}/></div>);
-const Se=({label,children,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={lb}>{label}</label><select {...p} style={{...ip,...p.style}}>{children}</select></div>);
-const Ta=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={lb}>{label}</label><textarea {...p} style={{...ip,resize:"vertical",minHeight:72,...p.style}}/></div>);
-const BtnExp=({onClick,label,color})=>(<button onClick={onClick} style={{padding:"8px 16px",border:"none",borderRadius:8,background:color||"#37474f",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>{label}</button>);
-const Btn=({onClick,label,color,full,disabled})=>(<button onClick={onClick} disabled={disabled} style={{padding:"12px 20px",border:"none",borderRadius:10,background:disabled?"#ccc":color||"#c62828",color:"#fff",fontWeight:700,cursor:disabled?"not-allowed":"pointer",fontSize:14,width:full?"100%":"auto",touchAction:"manipulation"}}>{label}</button>);
+</html>
