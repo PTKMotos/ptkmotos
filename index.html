@@ -24,11 +24,9 @@ const MK="$2a$10$L4xwan84Zj7itaLh2cZ.jOsmp0rhnIOb1bbX50QA1PcY3sngbuzP.";
 const BM="6a367ceada38895dfee27f90";
 const BF="6a367da3f5f4af5e29140640";
 const BC="6a367dd7da38895dfee282c0";
-const BG="6a367dd7da38895dfee282c0";
 const HD={"Content-Type":"application/json","X-Master-Key":MK,"X-Bin-Private":"false"};
 const USUARIOS={"Loja@123":{nome:"Wellington",role:"master"},"Impalacar@123":{nome:"Patrick",role:"vendas"}};
 async function rb(id){const r=await fetch("https://api.jsonbin.io/v3/b/"+id+"/latest",{headers:{"X-Master-Key":MK}});const d=await r.json();const v=d.record;return Array.isArray(v)?v.filter(x=>x&&Object.keys(x).length>0):[];}
-async function rbObj(id){const r=await fetch("https://api.jsonbin.io/v3/b/"+id+"/latest",{headers:{"X-Master-Key":MK}});const d=await r.json();return d.record||{};}
 async function wb(id,data){await fetch("https://api.jsonbin.io/v3/b/"+id,{method:"PUT",headers:HD,body:JSON.stringify(data)});}
 const fm=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const fp=v=>Number(v||0).toFixed(1)+"%";
@@ -63,7 +61,6 @@ const Se=({label,children,...p})=>(<div style={{display:"flex",flexDirection:"co
 const Ta=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={lb}>{label}</label><textarea {...p} style={{...ip,resize:"vertical",minHeight:72,...p.style}}/></div>);
 const BtnExp=({onClick,label,color})=>(<button onClick={onClick} style={{padding:"8px 16px",border:"none",borderRadius:8,background:color||"#37474f",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>{label}</button>);
 const Btn=({onClick,label,color,full,disabled})=>(<button onClick={onClick} disabled={disabled} style={{padding:"12px 20px",border:"none",borderRadius:10,background:disabled?"#ccc":color||"#c62828",color:"#fff",fontWeight:700,cursor:disabled?"not-allowed":"pointer",fontSize:14,width:full?"100%":"auto"}}>{label}</button>);
-
 function Login({onLogin}){
   const[senha,setSenha]=useState("");const[erro,setErro]=useState("");const[show,setShow]=useState(false);
   const tentar=()=>{const u=USUARIOS[senha];if(u){onLogin(u);}else{setErro("Senha incorreta.");}};
@@ -80,7 +77,7 @@ function Login({onLogin}){
       </div>
       <p style={{textAlign:"center",margin:"20px 0 0",fontSize:12,color:"#ccc"}}>PTK Motos · Lapa · Sao Paulo</p>
     </div>
-  </div>);}function BarraMeta({label,atual,meta,cor,formato,inverso}){
+  </div>);}function BarraMeta({label,atual,meta,formato,inverso}){
   const pct=meta>0?Math.min(100,(atual/meta)*100):0;
   const ritmoEsperado=(diaAtual()/diasNoMes())*100;
   const naFrente=inverso?(pct<=ritmoEsperado):(pct>=ritmoEsperado);
@@ -89,10 +86,7 @@ function Login({onLogin}){
   return(<div style={{marginBottom:16}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
       <span style={{fontSize:13,fontWeight:700,color:"#333"}}>{label}</span>
-      <div style={{textAlign:"right"}}>
-        <span style={{fontSize:13,fontWeight:800,color:corBarra}}>{fmt(atual)}</span>
-        <span style={{fontSize:12,color:"#aaa",marginLeft:6}}>/ {fmt(meta)}</span>
-      </div>
+      <div style={{textAlign:"right"}}><span style={{fontSize:13,fontWeight:800,color:corBarra}}>{fmt(atual)}</span><span style={{fontSize:12,color:"#aaa",marginLeft:6}}>/ {fmt(meta)}</span></div>
     </div>
     <div style={{background:"#f0f0f0",borderRadius:20,height:14,overflow:"hidden",position:"relative"}}>
       <div style={{position:"absolute",left:ritmoEsperado+"%",top:0,bottom:0,width:2,background:"#aaa",zIndex:2}}/>
@@ -103,31 +97,18 @@ function Login({onLogin}){
       <span style={{fontSize:11,color:"#aaa"}}>Esperado: {fp(ritmoEsperado)}</span>
     </div>
   </div>);}
-
 function Metas({motos,contas,isMaster}){
   const mesRef=mesAtual();
-  const [metas,setMetas]=useState({faturamento:0,lucro:0,qtdVendas:0,giroEstoque:0,margem:0,reducaoGastos:0,retiradaSocios:0,margemMinCompra:0});
-  const [editando,setEditando]=useState(false);
-  const [form,setForm]=useState({...metas});
-  const [salvando,setSalvando]=useState(false);
-  const [simPrecoVenda,setSimPrecoVenda]=useState("");
-  const [simMargem,setSimMargem]=useState("20");
-  const [simCusto,setSimCusto]=useState("");
-  const [simMargemInv,setSimMargemInv]=useState("20");
-
-  useEffect(()=>{
-    const salvas=localStorage.getItem("ptk_metas_"+mesRef);
-    if(salvas){const m=JSON.parse(salvas);setMetas(m);setForm(m);}
-  },[]);
-
-  const salvar=()=>{
-    setSalvando(true);
-    localStorage.setItem("ptk_metas_"+mesRef,JSON.stringify(form));
-    setMetas({...form});
-    setEditando(false);
-    setSalvando(false);
-  };
-
+  const[metas,setMetas]=useState({faturamento:0,lucro:0,qtdVendas:0,giroEstoque:0,margem:0,reducaoGastos:0,retiradaSocios:0,margemMinCompra:0});
+  const[editando,setEditando]=useState(false);
+  const[form,setForm]=useState({...metas});
+  const[salvando,setSalvando]=useState(false);
+  const[simPrecoVenda,setSimPrecoVenda]=useState("");
+  const[simMargem,setSimMargem]=useState("20");
+  const[simCusto,setSimCusto]=useState("");
+  const[simMargemInv,setSimMargemInv]=useState("20");
+  useEffect(()=>{const salvas=localStorage.getItem("ptk_metas_"+mesRef);if(salvas){const m=JSON.parse(salvas);setMetas(m);setForm(m);}},[]);
+  const salvar=()=>{setSalvando(true);localStorage.setItem("ptk_metas_"+mesRef,JSON.stringify(form));setMetas({...form});setEditando(false);setSalvando(false);};
   const ve=motos.filter(m=>m.status==="Vendida"&&m.dataVenda&&m.dataVenda.startsWith(mesRef));
   const fatBruto=ve.reduce((s,m)=>s+Number(m.valorVenda||0),0);
   const lucroMes=ve.reduce((s,m)=>s+margemReal(m),0);
@@ -135,25 +116,26 @@ function Metas({motos,contas,isMaster}){
   const estoqueAtivo=motos.filter(m=>m.status!=="Vendida");
   const diasMediosEstoque=estoqueAtivo.length?estoqueAtivo.reduce((s,m)=>s+(diasNoEstoque(m)||0),0)/estoqueAtivo.length:0;
   const margemMedMes=ve.length?ve.reduce((s,m)=>s+margemRealPct(m),0)/ve.length:0;
-  const gastosMes=contas.filter(c=>c.vencimento&&c.vencimento.startsWith(mesRef)).reduce((s,c)=>s+Number(c.val),0);
   const retiradaMes=contas.filter(c=>c.cat==="Retirada Socios"&&c.vencimento&&c.vencimento.startsWith(mesRef)).reduce((s,c)=>s+Number(c.val),0);
-
   const simMaxPagar=simPrecoVenda&&simMargem?Number(simPrecoVenda)/(1+Number(simMargem)/100):null;
   const simMinVender=simCusto&&simMargemInv?Number(simCusto)*(1+Number(simMargemInv)/100):null;
-
-  const Card=({icon,label,atual,meta,formato,inverso,cor})=>{
+  const Card=({icon,label,atual,meta,formato,inverso})=>{
     const pct=meta>0?Math.min(100,(atual/meta)*100):0;
     const fmt=v=>formato==="moeda"?fm(v):formato==="pct"?fp(v):formato==="dias"?Math.round(v)+"d":String(Math.round(v));
     const bom=pct>=100;
+    const ritmo=(diaAtual()/diasNoMes())*100;
+    const naFrente=inverso?(pct<=ritmo):(pct>=ritmo);
     return(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-        <div><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{icon} {label}</p><p style={{margin:"4px 0 0",fontSize:20,fontWeight:900,color:bom?"#2e7d32":pct>=(diaAtual()/diasNoMes()*100)?"#f57f17":"#b71c1c"}}>{fmt(atual)}</p></div>
+        <div><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{icon} {label}</p><p style={{margin:"4px 0 0",fontSize:20,fontWeight:900,color:bom?"#2e7d32":naFrente?"#43a047":"#b71c1c"}}>{fmt(atual)}</p></div>
         <span style={{fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:20,background:bom?"#e8f5e9":"#f5f5f5",color:bom?"#2e7d32":"#666"}}>{meta>0?fp(pct):"—"}</span>
       </div>
-      {meta>0&&<BarraMeta label="" atual={atual} meta={meta} formato={formato} inverso={inverso}/>}
-      <p style={{margin:0,fontSize:11,color:"#aaa"}}>Meta: {meta>0?fmt(meta):"Nao definida"}</p>
+      {meta>0&&(<div style={{background:"#f0f0f0",borderRadius:20,height:10,overflow:"hidden",position:"relative"}}>
+        <div style={{position:"absolute",left:ritmo+"%",top:0,bottom:0,width:2,background:"#aaa",zIndex:2}}/>
+        <div style={{width:pct+"%",height:"100%",background:bom?"#2e7d32":naFrente?"#43a047":"#f57f17",borderRadius:20}}/>
+      </div>)}
+      <p style={{margin:"6px 0 0",fontSize:11,color:"#aaa"}}>Meta: {meta>0?fmt(meta):"Nao definida"}</p>
     </div>);};
-
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{background:"linear-gradient(135deg,#c62828,#b71c1c)",borderRadius:16,padding:20,color:"#fff"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -164,22 +146,19 @@ function Metas({motos,contas,isMaster}){
         {[["Vendas",qtdVendas,metas.qtdVendas],["Fat. Bruto",fm(fatBruto),fm(metas.faturamento)],["Lucro",fm(lucroMes),fm(metas.lucro)]].map(([l,a,m])=>(<div key={l} style={{background:"rgba(255,255,255,0.15)",borderRadius:10,padding:"10px 12px"}}><p style={{margin:0,fontSize:10,opacity:.8}}>{l}</p><p style={{margin:"2px 0",fontWeight:800,fontSize:15}}>{a}</p><p style={{margin:0,fontSize:10,opacity:.7}}>Meta: {m}</p></div>))}
       </div>
     </div>
-
     {editando&&isMaster&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
       <p style={{margin:"0 0 16px",fontWeight:700,fontSize:15}}>✏️ Definir Metas — {new Date().toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}} className="grid2">
         <Fi label="Meta Faturamento Bruto R$" type="number" value={form.faturamento||""} onChange={e=>setForm(p=>({...p,faturamento:Number(e.target.value)}))} inputMode="decimal"/>
         <Fi label="Meta Lucro Liquido R$" type="number" value={form.lucro||""} onChange={e=>setForm(p=>({...p,lucro:Number(e.target.value)}))} inputMode="decimal"/>
-        <Fi label="Meta Motos Vendidas (qtd)" type="number" value={form.qtdVendas||""} onChange={e=>setForm(p=>({...p,qtdVendas:Number(e.target.value)}))} inputMode="numeric"/>
-        <Fi label="Meta Giro Estoque (dias max)" type="number" value={form.giroEstoque||""} onChange={e=>setForm(p=>({...p,giroEstoque:Number(e.target.value)}))} inputMode="numeric"/>
+        <Fi label="Meta Motos Vendidas" type="number" value={form.qtdVendas||""} onChange={e=>setForm(p=>({...p,qtdVendas:Number(e.target.value)}))} inputMode="numeric"/>
+        <Fi label="Meta Giro Estoque (dias)" type="number" value={form.giroEstoque||""} onChange={e=>setForm(p=>({...p,giroEstoque:Number(e.target.value)}))} inputMode="numeric"/>
         <Fi label="Meta Margem Media %" type="number" value={form.margem||""} onChange={e=>setForm(p=>({...p,margem:Number(e.target.value)}))} inputMode="decimal"/>
-        <Fi label="Meta Reducao Gastos %" type="number" value={form.reducaoGastos||""} onChange={e=>setForm(p=>({...p,reducaoGastos:Number(e.target.value)}))} inputMode="decimal"/>
         <Fi label="Meta Retirada Socios R$" type="number" value={form.retiradaSocios||""} onChange={e=>setForm(p=>({...p,retiradaSocios:Number(e.target.value)}))} inputMode="decimal"/>
         <Fi label="Margem Minima por Compra %" type="number" value={form.margemMinCompra||""} onChange={e=>setForm(p=>({...p,margemMinCompra:Number(e.target.value)}))} inputMode="decimal"/>
       </div>
       <div style={{marginTop:14}}><Btn onClick={salvar} label={salvando?"Salvando...":"💾 Salvar Metas"} full disabled={salvando}/></div>
     </div>)}
-
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}} className="grid2">
       <Card icon="💰" label="Faturamento Bruto" atual={fatBruto} meta={metas.faturamento} formato="moeda"/>
       <Card icon="📈" label="Lucro Liquido" atual={lucroMes} meta={metas.lucro} formato="moeda"/>
@@ -188,22 +167,17 @@ function Metas({motos,contas,isMaster}){
       <Card icon="📊" label="Margem Media" atual={margemMedMes} meta={metas.margem} formato="pct"/>
       <Card icon="🏦" label="Retirada Socios" atual={retiradaMes} meta={metas.retiradaSocios} formato="moeda"/>
     </div>
-
     {metas.margemMinCompra>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>📋 Compras do mes vs Meta de Margem</p>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>📋 Vendas do mes vs Meta de Margem ({fp(metas.margemMinCompra)})</p>
       {ve.length===0&&<p style={{color:"#aaa",fontSize:13,textAlign:"center",padding:"10px 0"}}>Nenhuma venda registrada este mes.</p>}
-      {ve.map(m=>{const mr=margemRealPct(m);const ok=mr>=metas.margemMinCompra;return(<div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f5f5f5",fontSize:13}}>
-        <span><b>{m.marca} {m.modelo}</b> · {m.placa}</span>
-        <span style={{fontWeight:700,color:ok?"#2e7d32":"#b71c1c"}}>{fp(mr)} {ok?"✓":"✗"}</span>
-      </div>);})}
+      {ve.map(m=>{const mr=margemRealPct(m);const ok=mr>=metas.margemMinCompra;return(<div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f5f5f5",fontSize:13}}><span><b>{m.marca} {m.modelo}</b> · {m.placa}</span><span style={{fontWeight:700,color:ok?"#2e7d32":"#b71c1c"}}>{fp(mr)} {ok?"✓":"✗"}</span></div>);})}
     </div>)}
-
     <div style={{background:"#fff",border:"1.5px solid #1565c0",borderRadius:14,padding:20}}>
       <p style={{margin:"0 0 16px",fontWeight:700,fontSize:15,color:"#1565c0"}}>🧮 Simulador de Compra e Venda</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}} className="grid2">
         <div style={{background:"#e3f2fd",borderRadius:12,padding:14}}>
           <p style={{margin:"0 0 10px",fontWeight:700,fontSize:13,color:"#1565c0"}}>Quanto posso pagar?</p>
-          <p style={{margin:"0 0 8px",fontSize:12,color:"#555"}}>Se quero vender por X com margem Y%, qual o custo maximo?</p>
+          <p style={{margin:"0 0 8px",fontSize:12,color:"#555"}}>Se quero vender por X com margem Y%</p>
           <Fi label="Preco de Venda R$" type="number" value={simPrecoVenda} onChange={e=>setSimPrecoVenda(e.target.value)} inputMode="decimal"/>
           <div style={{marginTop:8}}><Fi label="Margem Desejada %" type="number" value={simMargem} onChange={e=>setSimMargem(e.target.value)} inputMode="decimal"/></div>
           {simMaxPagar&&(<div style={{marginTop:12,background:"#1565c0",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
@@ -214,7 +188,7 @@ function Metas({motos,contas,isMaster}){
         </div>
         <div style={{background:"#f1f8e9",borderRadius:12,padding:14}}>
           <p style={{margin:"0 0 10px",fontWeight:700,fontSize:13,color:"#2e7d32"}}>Quanto devo vender?</p>
-          <p style={{margin:"0 0 8px",fontSize:12,color:"#555"}}>Se paguei X e quero margem Y%, qual o preco minimo?</p>
+          <p style={{margin:"0 0 8px",fontSize:12,color:"#555"}}>Se paguei X e quero margem Y%</p>
           <Fi label="Custo Total R$" type="number" value={simCusto} onChange={e=>setSimCusto(e.target.value)} inputMode="decimal"/>
           <div style={{marginTop:8}}><Fi label="Margem Desejada %" type="number" value={simMargemInv} onChange={e=>setSimMargemInv(e.target.value)} inputMode="decimal"/></div>
           {simMinVender&&(<div style={{marginTop:12,background:"#2e7d32",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
@@ -266,7 +240,7 @@ function GerarLegenda({moto}){
   const[loading,setLoading]=useState(false);const[legenda,setLegenda]=useState("");const[copiado,setCopiado]=useState(false);
   const gerar=async()=>{
     setLoading(true);setLegenda("");
-    const prompt=`Crie uma legenda para Instagram para venda desta moto usada na loja PTK Motos em Sao Paulo.\n\nMOTO:\n- ${moto.marca} ${moto.modelo} ${moto.ano}\n- Cor: ${moto.cor||"nao informada"}\n- KM: ${moto.km||"nao informado"}\n- Placa: ${moto.placa}\n- Preco: ${fm(moto.precoVenda||0)}\n- Tipo de entrada: ${moto.tipoEntrada||"Compra"}\n\nA legenda deve:\n- Ser animada e atrativa para Instagram\n- Ter emojis relevantes\n- Destacar o preco\n- Ter call to action para WhatsApp: (11) 94167-2110 Patrick\n- Mencionar PTK Motos - Lapa SP\n- Ter hashtags relevantes no final\n- Ser em portugues brasileiro\n- Ter no maximo 300 palavras`;
+    const prompt=`Crie uma legenda para Instagram para venda desta moto usada na loja PTK Motos em Sao Paulo.\n\nMOTO:\n- ${moto.marca} ${moto.modelo} ${moto.ano}\n- Cor: ${moto.cor||"nao informada"}\n- KM: ${moto.km||"nao informado"}\n- Placa: ${moto.placa}\n- Preco: ${fm(moto.precoVenda||0)}\n- Tipo: ${moto.tipoEntrada||"Compra"}\n\nA legenda deve:\n- Ser animada e atrativa\n- Ter emojis relevantes\n- Destacar o preco\n- Call to action WhatsApp: (11) 94167-2110 Patrick\n- Mencionar PTK Motos - Lapa SP\n- Hashtags no final\n- Portugues brasileiro\n- Max 300 palavras`;
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt}]})});
       const data=await res.json();
@@ -277,7 +251,7 @@ function GerarLegenda({moto}){
   const copiar=()=>{navigator.clipboard.writeText(legenda).then(()=>{setCopiado(true);setTimeout(()=>setCopiado(false),2000);});};
   return(<div style={{background:"#f3e5f5",border:"1.5px solid #ce93d8",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:10}}>
     <p style={{margin:0,fontWeight:700,color:"#6a1b9a",fontSize:13}}>📱 LEGENDA INSTAGRAM</p>
-    <Btn onClick={gerar} label={loading?"Gerando...":"✨ Gerar Legenda Automatica"} color="#6a1b9a" full disabled={loading}/>
+    <Btn onClick={gerar} label={loading?"Gerando...":"✨ Gerar Legenda"} color="#6a1b9a" full disabled={loading}/>
     {legenda&&(<div>
       <div style={{background:"#fff",borderRadius:10,padding:14,fontSize:13,lineHeight:1.7,color:"#333",whiteSpace:"pre-wrap",border:"1px solid #e1bee7",marginBottom:8}}>{legenda}</div>
       <button onClick={copiar} style={{width:"100%",padding:"10px",border:"none",borderRadius:10,background:copiado?"#2e7d32":"#6a1b9a",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14}}>{copiado?"✓ Copiado!":"📋 Copiar legenda"}</button>
@@ -343,7 +317,12 @@ function Mf({initial,onSave,onCancel,usuario}){
           <Se label="Forma Pgto" value={f.formaPgtoCompra} onChange={e=>st("formaPgtoCompra",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>
           <Fi label="Data Entrada" type="date" value={f.dataCompra} onChange={e=>st("dataCompra",e.target.value)}/>
           <Fi label="Preco Venda Pretendido R$" type="number" value={f.precoVenda||""} onChange={e=>st("precoVenda",e.target.value)} inputMode="decimal"/>
-        </>):(<div style={{background:"#f9f9f9",borderRadius:10,padding:"10px 14px",gridColumn:"1/-1"}}><p style={{margin:0,fontSize:12,color:"#888",fontWeight:600}}>🔒 Valores financeiros — apenas Wellington</p></div>)}
+        </>):(<>
+          <Fi label="Valor Compra R$" type="number" value={f.valorCompra} onChange={e=>st("valorCompra",e.target.value)} inputMode="decimal"/>
+          <Se label="Forma Pgto" value={f.formaPgtoCompra} onChange={e=>st("formaPgtoCompra",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>
+          <Fi label="Data Entrada" type="date" value={f.dataCompra} onChange={e=>st("dataCompra",e.target.value)}/>
+          <Fi label="Preco Venda Pretendido R$" type="number" value={f.precoVenda||""} onChange={e=>st("precoVenda",e.target.value)} inputMode="decimal"/>
+        </>)}
       </div>
       {f.tipoEntrada==="Troca"&&(<div style={{background:"#e3f2fd",borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:10}}>
         <p style={{margin:0,fontWeight:700,color:"#1565c0",fontSize:13}}>🔄 MOTO RECEBIDA NA TROCA</p>
@@ -351,12 +330,12 @@ function Mf({initial,onSave,onCancel,usuario}){
           <Fi label="Marca" value={f.trocaMarca||""} onChange={e=>st("trocaMarca",e.target.value)}/>
           <Fi label="Modelo" value={f.trocaModelo||""} onChange={e=>st("trocaModelo",e.target.value)}/>
           <Fi label="Placa" value={f.trocaPlaca||""} onChange={e=>st("trocaPlaca",e.target.value.toUpperCase())}/>
-          {isMaster&&<Fi label="Valor Avaliado R$" type="number" value={f.trocaValorAvaliado||""} onChange={e=>st("trocaValorAvaliado",e.target.value)} inputMode="decimal"/>}
-          {isMaster&&<Fi label="Diferenca Paga R$" type="number" value={f.trocaDiferenca||""} onChange={e=>st("trocaDiferenca",e.target.value)} inputMode="decimal"/>}
-          {isMaster&&<Se label="Forma Pgto" value={f.trocaFormaPgto||"Pix"} onChange={e=>st("trocaFormaPgto",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>}
+          <Fi label="Valor Avaliado R$" type="number" value={f.trocaValorAvaliado||""} onChange={e=>st("trocaValorAvaliado",e.target.value)} inputMode="decimal"/>
+          <Fi label="Diferenca Paga R$" type="number" value={f.trocaDiferenca||""} onChange={e=>st("trocaDiferenca",e.target.value)} inputMode="decimal"/>
+          <Se label="Forma Pgto" value={f.trocaFormaPgto||"Pix"} onChange={e=>st("trocaFormaPgto",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>
         </div>
       </div>)}
-      {isMaster&&f.valorCompra&&f.precoVenda&&(<div style={{background:me>=0?"#f1f8e9":"#fce4ec",borderRadius:12,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}} className="grid3">
+      {f.valorCompra&&f.precoVenda&&(<div style={{background:me>=0?"#f1f8e9":"#fce4ec",borderRadius:12,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}} className="grid3">
         <div><p style={{margin:0,fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Custo Total</p><p style={{margin:"4px 0 0",fontWeight:800,fontSize:15,color:"#37474f"}}>{fm(ct)}</p></div>
         <div><p style={{margin:0,fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Lucro Esperado</p><p style={{margin:"4px 0 0",fontWeight:800,fontSize:15,color:me>=0?"#2e7d32":"#b71c1c"}}>{fm(me)}</p></div>
         <div><p style={{margin:0,fontSize:10,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Margem</p><p style={{margin:"4px 0 0",fontWeight:800,fontSize:15,color:mep>=10?"#2e7d32":mep>=0?"#f57f17":"#b71c1c"}}>{fp(mep)}</p></div>
@@ -376,13 +355,13 @@ function Mf({initial,onSave,onCancel,usuario}){
     </div>)}
     {tab==="custos"&&(<div style={{display:"flex",flexDirection:"column",gap:12}}>
       <Cf custos={f.custos} onChange={v=>st("custos",v)}/>
-      {isMaster&&(<div style={{background:"#f9f9f9",borderRadius:12,padding:14,fontSize:13,display:"flex",flexDirection:"column",gap:8}}>
+      <div style={{background:"#f9f9f9",borderRadius:12,padding:14,fontSize:13,display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"flex",justifyContent:"space-between"}}><span>Compra:</span><span style={{fontWeight:700}}>{fm(f.valorCompra)}</span></div>
         <div style={{display:"flex",justifyContent:"space-between"}}><span>Custos extras:</span><span style={{fontWeight:700,color:"#c62828"}}>{fm(tc)}</span></div>
         <div style={{display:"flex",justifyContent:"space-between",fontWeight:800,borderTop:"1px solid #eee",paddingTop:8}}><span>Custo total:</span><span>{fm(ct)}</span></div>
         {f.precoVenda&&<div style={{display:"flex",justifyContent:"space-between",fontWeight:800,color:me>=0?"#2e7d32":"#c62828",borderTop:"1px solid #eee",paddingTop:8}}><span>Lucro esperado ({fp(mep)}):</span><span>{fm(me)}</span></div>}
         {ll!==null&&<div style={{display:"flex",justifyContent:"space-between",fontWeight:800,color:ll>=0?"#2e7d32":"#c62828",borderTop:"1px solid #eee",paddingTop:8}}><span>Lucro real ({fp(llp)}):</span><span>{fm(ll)}</span></div>}
-      </div>)}
+      </div>
     </div>)}
     {tab==="instagram"&&(<div style={{display:"flex",flexDirection:"column",gap:12}}>
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -429,7 +408,7 @@ function Mf({initial,onSave,onCancel,usuario}){
   const repCusto=totalCustoEstoque>0?(ct/totalCustoEstoque*100):0;
   const olxUrl=`https://www.olx.com.br/motos-e-acessorios/motos?q=${encodeURIComponent((moto.marca+" "+moto.modelo).trim())}`;
   return(<div style={{border:"1.5px solid #eee",borderRadius:16,padding:16,background:"#fff",boxShadow:"0 1px 4px #0001"}}>
-    <div onClick={onClick} style={{cursor:"pointer"}}>
+    <div onClick={isMaster?onClick:undefined} style={{cursor:isMaster?"pointer":"default"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
         <div style={{flex:1,marginRight:8}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
@@ -442,10 +421,10 @@ function Mf({initial,onSave,onCancel,usuario}){
         <span style={{background:c.bg,color:c.tx,fontSize:11,fontWeight:700,padding:"4px 10px",borderRadius:20,whiteSpace:"nowrap"}}>{moto.status}</span>
       </div>
       <div style={{fontSize:14,display:"flex",flexDirection:"column",gap:5}}>
-        {isMaster&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Custo total</span><span style={{fontWeight:700}}>{fm(ct)}</span></div>}
-        {isMaster&&moto.precoVenda&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Preco pretendido</span><span style={{fontWeight:700,color:"#1565c0"}}>{fm(moto.precoVenda)}</span></div>}
-        {isMaster&&moto.precoVenda&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Margem esperada</span><span style={{fontWeight:700,color:mep>=10?"#2e7d32":mep>=0?"#f57f17":"#b71c1c"}}>{fp(mep)} · {fm(me)}</span></div>}
-        {isMaster&&lu!==null&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Lucro real</span><span style={{fontWeight:700,color:lu>=0?"#2e7d32":"#b71c1c"}}>{fp(lup)} · {fm(lu)}</span></div>}
+        <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Custo total</span><span style={{fontWeight:700}}>{fm(ct)}</span></div>
+        {moto.precoVenda&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Preco pretendido</span><span style={{fontWeight:700,color:"#1565c0"}}>{fm(moto.precoVenda)}</span></div>}
+        {moto.precoVenda&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Margem esperada</span><span style={{fontWeight:700,color:mep>=10?"#2e7d32":mep>=0?"#f57f17":"#b71c1c"}}>{fp(mep)} · {fm(me)}</span></div>}
+        {lu!==null&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Lucro real</span><span style={{fontWeight:700,color:lu>=0?"#2e7d32":"#b71c1c"}}>{fp(lup)} · {fm(lu)}</span></div>}
         {dias!==null&&<div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:"#555"}}>Tempo no estoque</span><span style={{fontWeight:700,color:dias>60?"#b71c1c":dias>30?"#f57f17":"#2e7d32"}}>{dias} dias</span></div>}
         {isMaster&&totalCustoEstoque>0&&moto.status!=="Vendida"&&(<div style={{marginTop:4}}>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#aaa",marginBottom:3}}><span>Representacao no estoque</span><span>{fp(repCusto)}</span></div>
@@ -453,7 +432,8 @@ function Mf({initial,onSave,onCancel,usuario}){
         </div>)}
       </div>
       {moto.vendedorNome&&<p style={{margin:"10px 0 0",fontSize:13,color:"#999"}}>De: {moto.vendedorNome}</p>}
-      {moto.compradorNome&&isMaster&&<p style={{margin:"2px 0 0",fontSize:13,color:"#999"}}>Para: {moto.compradorNome}</p>}
+      {moto.compradorNome&&<p style={{margin:"2px 0 0",fontSize:13,color:"#999"}}>Para: {moto.compradorNome}</p>}
+      {!isMaster&&<p style={{margin:"8px 0 0",fontSize:11,color:"#bbb",fontStyle:"italic"}}>🔒 Apenas visualizacao</p>}
     </div>
     <div style={{display:"flex",gap:8,marginTop:12,paddingTop:12,borderTop:"1px solid #f0f0f0"}}>
       <a href="https://www.fipe.org.br/pt-br/indices/veiculos/?tipoVeiculo=motocicleta" target="_blank" style={{flex:1,padding:"8px",background:"#1565c0",color:"#fff",borderRadius:10,fontSize:12,fontWeight:700,textDecoration:"none",textAlign:"center"}}>📊 FIPE</a>
@@ -481,10 +461,6 @@ function Db({motos,contas,usuario}){
   const contasVencendo=contas.filter(c=>{const d=diasAteVencer(c);return d!==null&&d>=0&&d<=7;});
   const Ca=({label,value,sub,color})=>(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{label}</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:color||"#1a1a1a"}}>{value}</p>{sub&&<p style={{margin:"2px 0 0",fontSize:11,color:"#aaa"}}>{sub}</p>}</div>);
   return(<div style={{display:"flex",flexDirection:"column",gap:14}}>
-    {!isMaster&&(<div style={{background:"#e3f2fd",border:"1.5px solid #90caf9",borderRadius:14,padding:14,display:"flex",alignItems:"center",gap:10}}>
-      <span style={{fontSize:24}}>👋</span>
-      <div><p style={{margin:0,fontWeight:700,fontSize:15}}>Ola, Patrick!</p><p style={{margin:0,fontSize:13,color:"#555"}}>Voce tem acesso de visualizacao e cadastro de motos.</p></div>
-    </div>)}
     {isMaster&&contasVencidas.length>0&&(<div style={{background:"#fce4ec",border:"1.5px solid #e53935",borderRadius:14,padding:14}}>
       <p style={{margin:"0 0 8px",fontWeight:700,fontSize:14,color:"#b71c1c"}}>🔴 {contasVencidas.length} conta{contasVencidas.length>1?"s":""} vencida{contasVencidas.length>1?"s":""}!</p>
       {contasVencidas.slice(0,3).map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #ffcdd2"}}><span>{c.desc}</span><span style={{fontWeight:700,color:"#b71c1c"}}>{fm(c.val)}</span></div>))}
@@ -499,39 +475,46 @@ function Db({motos,contas,usuario}){
     </div>)}
     {atencao.length>0&&(<div style={{background:"#fff8e1",border:"1.5px solid #ffa000",borderRadius:14,padding:14}}>
       <p style={{margin:"0 0 8px",fontWeight:700,fontSize:14,color:"#e65100"}}>🟡 {atencao.length} moto{atencao.length>1?"s":""} precisam de atencao</p>
-      {atencao.map(m=>(<div key={m.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #ffe082"}}><span>{m.marca} {m.modelo} · {m.placa}</span><span style={{fontWeight:700,color:"#e65100"}}>{diasNoEstoque(m)}d{isMaster?" · "+fp(margemEspPct(m)):""}</span></div>))}
+      {atencao.map(m=>(<div key={m.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #ffe082"}}><span>{m.marca} {m.modelo} · {m.placa}</span><span style={{fontWeight:700,color:"#e65100"}}>{diasNoEstoque(m)}d · {fp(margemEspPct(m))}</span></div>))}
     </div>)}
     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}} className="grid3">
       <Ca label="Estoque" value={es.length} sub="disponiveis" color="#1565c0"/>
       <Ca label="Vendidas" value={ve.length} sub="total" color="#b71c1c"/>
       <Ca label="Reforma" value={re.length} sub="aguardando" color="#e65100"/>
     </div>
-    {isMaster&&(<>
-      <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-        <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>📦 Estoque atual</p>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Ca label="Custo total" value={fm(totalCustoEstoque)} color="#37474f"/>
-          <Ca label="Venda potencial" value={fm(totalVendaEstoque)} color="#1565c0"/>
-          <Ca label="Lucro esperado" value={fm(totalLucroEsp)} color={totalLucroEsp>=0?"#2e7d32":"#b71c1c"}/>
-          <Ca label="Margem esperada" value={fp(margemEspGeral)} color={margemEspGeral>=10?"#2e7d32":margemEspGeral>=0?"#f57f17":"#b71c1c"}/>
-        </div>
+    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>📦 Estoque atual</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Ca label="Custo total" value={fm(totalCustoEstoque)} color="#37474f"/>
+        <Ca label="Venda potencial" value={fm(totalVendaEstoque)} color="#1565c0"/>
+        <Ca label="Lucro esperado" value={fm(totalLucroEsp)} color={totalLucroEsp>=0?"#2e7d32":"#b71c1c"}/>
+        <Ca label="Margem esperada" value={fp(margemEspGeral)} color={margemEspGeral>=10?"#2e7d32":margemEspGeral>=0?"#f57f17":"#b71c1c"}/>
       </div>
-      <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-        <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>💰 Resultado de vendas</p>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <Ca label="Total vendido" value={fm(totalVendas)} color="#1b5e20"/>
-          <Ca label="Custo vendidas" value={fm(totalCustoVendidas)} color="#37474f"/>
-          <Ca label="Lucro real" value={fm(lucroReal)} color={lucroReal>=0?"#2e7d32":"#b71c1c"}/>
-          <Ca label="Margem real" value={fp(margemRealGeral)} color={margemRealGeral>=10?"#2e7d32":margemRealGeral>=0?"#f57f17":"#b71c1c"}/>
-        </div>
+    </div>
+    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>💰 Resultado de vendas</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <Ca label="Total vendido" value={fm(totalVendas)} color="#1b5e20"/>
+        <Ca label="Custo vendidas" value={fm(totalCustoVendidas)} color="#37474f"/>
+        <Ca label="Lucro real" value={fm(lucroReal)} color={lucroReal>=0?"#2e7d32":"#b71c1c"}/>
+        <Ca label="Margem real" value={fp(margemRealGeral)} color={margemRealGeral>=10?"#2e7d32":margemRealGeral>=0?"#f57f17":"#b71c1c"}/>
       </div>
-    </>)}
+    </div>
+    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
+      <p style={{margin:"0 0 14px",fontWeight:700,fontSize:14}}>🔗 Canais de Venda</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <a href="https://www.instagram.com/ptk.motos/" target="_blank" style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:"linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",borderRadius:12,textDecoration:"none",color:"#fff"}}><span style={{fontSize:20}}>📸</span><div><p style={{margin:0,fontSize:12,fontWeight:800}}>Instagram</p><p style={{margin:0,fontSize:10,opacity:.8}}>@ptk.motos</p></div></a>
+        <a href="https://www.olx.com.br/perfil/ptk-motos-6104c767" target="_blank" style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:"#6e0ad6",borderRadius:12,textDecoration:"none",color:"#fff"}}><span style={{fontSize:20}}>🔍</span><div><p style={{margin:0,fontSize:12,fontWeight:800}}>OLX</p><p style={{margin:0,fontSize:10,opacity:.8}}>Ptk Motos Brasil</p></div></a>
+        <a href="https://maps.app.goo.gl/jas1UXyrZMB4kdnG7" target="_blank" style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:"#1a73e8",borderRadius:12,textDecoration:"none",color:"#fff"}}><span style={{fontSize:20}}>📍</span><div><p style={{margin:0,fontSize:12,fontWeight:800}}>Google Maps</p><p style={{margin:0,fontSize:10,opacity:.8}}>Lapa · SP</p></div></a>
+        <a href="https://www.facebook.com/p/Ptk-Motos-100083313364069/" target="_blank" style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:"#1877f2",borderRadius:12,textDecoration:"none",color:"#fff"}}><span style={{fontSize:20}}>📘</span><div><p style={{margin:0,fontSize:12,fontWeight:800}}>Facebook</p><p style={{margin:0,fontSize:10,opacity:.8}}>Ptk Motos</p></div></a>
+      </div>
+    </div>
     {motos.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Canais de Venda</p></div>)}     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>       <p style={{margin:"0 0 14px",fontWeight:700,fontSize:14}}>🔗 Canais de Venda</p>       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>         <a href="https://www.instagram.com/ptk.motos/" target="_blank" style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:"linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",borderRadius:12,textDecoration:"none",color:"#fff"}}><span style={{fontSize:20}}>📸</span><div><p style={{margin:0,fontSize:12,fontWeight:800}}>Instagram</p><p style={{margin:0,fontSize:10,opacity:.8}}>@ptk.motos</p></div></a>         <a href="https://www.olx.com.br/perfil/ptk-motos-6104c767" target="_blank" style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:"#6e0ad6",borderRadius:12,textDecoration:"none",color:"#fff"}}><span style={{fontSize:20}}>🔍</span><div><p style={{margin:0,fontSize:12,fontWeight:800}}>OLX</p><p style={{margin:0,fontSize:10,opacity:.8}}>Ptk Motos Brasil</p></div></a>         <a href="https://maps.app.goo.gl/jas1UXyrZMB4kdnG7" target="_blank" style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:"#1a73e8",borderRadius:12,textDecoration:"none",color:"#fff"}}><span style={{fontSize:20}}>📍</span><div><p style={{margin:0,fontSize:12,fontWeight:800}}>Google Maps</p><p style={{margin:0,fontSize:10,opacity:.8}}>Lapa · SP</p></div></a>         <a href="https://www.facebook.com/p/Ptk-Motos-100083313364069/" target="_blank" style={{display:"flex",alignItems:"center",gap:8,padding:"12px 14px",background:"#1877f2",borderRadius:12,textDecoration:"none",color:"#fff"}}><span style={{fontSize:20}}>📘</span><div><p style={{margin:0,fontSize:12,fontWeight:800}}>Facebook</p><p style={{margin:0,fontSize:10,opacity:.8}}>Ptk Motos</p></div></a>       </div>     </div>     {motos.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>       <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Ultimas cadastradas</p>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>Ultimas cadastradas</p>
       {[...motos].reverse().slice(0,5).map(m=>(<div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid #f0f0f0",fontSize:14}}>
         <span><b>{m.marca} {m.modelo}</b> · {m.placa}</span>
         <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {isMaster&&m.precoVenda&&<span style={{fontSize:12,fontWeight:700,color:margemEspPct(m)>=10?"#2e7d32":margemEspPct(m)>=0?"#f57f17":"#b71c1c"}}>{fp(margemEspPct(m))}</span>}
+          {m.precoVenda&&<span style={{fontSize:12,fontWeight:700,color:margemEspPct(m)>=10?"#2e7d32":margemEspPct(m)>=0?"#f57f17":"#b71c1c"}}>{fp(margemEspPct(m))}</span>}
           {semaforo(m)&&<span style={{fontSize:16}}>{semaforo(m)==="green"?"🟢":semaforo(m)==="yellow"?"🟡":"🔴"}</span>}
         </div>
       </div>))}
@@ -592,11 +575,10 @@ function Rl({motos,usuario}){
   const expEstoquePDF=()=>{const rows=estoqueOrdenado.map(m=>`<tr><td>${m.marca} ${m.modelo}</td><td>${m.placa}</td><td>${m.status}</td><td>${fm(custoTotal(m))}</td><td>${fm(m.precoVenda||0)}</td><td style="color:${margemEspPct(m)>=10?"#2e7d32":margemEspPct(m)>=0?"#f57f17":"#b71c1c"}">${fp(margemEspPct(m))}</td><td>${diasNoEstoque(m)||0}d</td></tr>`).join("");exportPDF("Estoque PTK",`<h1>Estoque</h1><p>${estoqueOrdenado.length} motos · ${fd(td())}</p><br><table><thead><tr><th>Moto</th><th>Placa</th><th>Status</th><th>Custo</th><th>Preco</th><th>Margem</th><th>Dias</th></tr></thead><tbody>${rows}</tbody></table>`);};
   const expVendasPDF=()=>{const rows=pm.map(m=>`<tr><td>${m.marca} ${m.modelo}</td><td>${m.placa}</td><td>${fd(m.dataVenda)}</td><td>${fm(m.ct)}</td><td>${fm(m.valorVenda||0)}</td><td style="color:${m.lu>=0?"#2e7d32":"#b71c1c"}">${fm(m.lu)}</td><td>${fp(m.lup)}</td><td>${m.di||0}d</td></tr>`).join("");exportPDF("Vendas PTK",`<h1>Vendas</h1><p>${pm.length} motos · ${fd(td())}</p><br><table><thead><tr><th>Moto</th><th>Placa</th><th>Data</th><th>Custo</th><th>Venda</th><th>Lucro</th><th>Margem</th><th>Dias</th></tr></thead><tbody>${rows}</tbody></table>`);};
   return(<div style={{display:"flex",flexDirection:"column",gap:14}}>
-    {!isMaster&&<div style={{background:"#e3f2fd",border:"1.5px solid #90caf9",borderRadius:12,padding:12,fontSize:13,color:"#1565c0",fontWeight:600}}>👁️ Visualizacao — apenas leitura</div>}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
       <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Lucro medio</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:ml>=0?"#2e7d32":"#b71c1c"}}>{fm(ml)}</p><p style={{margin:"2px 0 0",fontSize:12,color:"#aaa"}}>Margem: {fp(mlp)}</p></div>
       <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>Tempo medio</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:"#1565c0"}}>{md!==null?Math.round(md)+" dias":"—"}</p></div>
-      {mb&&(<div style={{background:"#f1f8e9",border:"1.5px solid #a5d6a7",borderRadius:14,padding:16,gridColumn:"1/-1"}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#2e7d32",textTransform:"uppercase"}}>🏆 Mais lucrativa</p><p style={{margin:"6px 0 0",fontSize:15,fontWeight:800}}>{mb.marca} {mb.modelo} · {mb.placa}</p>{isMaster&&<p style={{margin:"2px 0 0",fontSize:13,color:"#555"}}>Lucro: <b style={{color:"#2e7d32"}}>{fm(mb.lu)}</b> · Margem: <b style={{color:"#2e7d32"}}>{fp(mb.lup)}</b></p>}</div>)}
+      {mb&&(<div style={{background:"#f1f8e9",border:"1.5px solid #a5d6a7",borderRadius:14,padding:16,gridColumn:"1/-1"}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#2e7d32",textTransform:"uppercase"}}>🏆 Mais lucrativa</p><p style={{margin:"6px 0 0",fontSize:15,fontWeight:800}}>{mb.marca} {mb.modelo} · {mb.placa}</p><p style={{margin:"2px 0 0",fontSize:13,color:"#555"}}>Lucro: <b style={{color:"#2e7d32"}}>{fm(mb.lu)}</b> · Margem: <b style={{color:"#2e7d32"}}>{fp(mb.lup)}</b></p></div>)}
     </div>
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
       <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",justifyContent:"space-between",alignItems:"center"}}>
@@ -613,7 +595,7 @@ function Rl({motos,usuario}){
         {Object.entries(pr).map(([ms,d])=>(<div key={ms} style={{marginBottom:14,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
             <span style={{fontWeight:700,fontSize:14}}>{ms}</span>
-            <div style={{textAlign:"right"}}>{isMaster&&<span style={{fontSize:14,fontWeight:700,color:d.lu>=0?"#2e7d32":"#b71c1c"}}>{fm(d.lu)}</span>}<br/><span style={{fontSize:12,color:"#aaa"}}>{d.qt} moto{d.qt>1?"s":""}{isMaster&&" · "+fm(d.rv)}</span></div>
+            <div style={{textAlign:"right"}}><span style={{fontSize:14,fontWeight:700,color:d.lu>=0?"#2e7d32":"#b71c1c"}}>{fm(d.lu)}</span><br/><span style={{fontSize:12,color:"#aaa"}}>{d.qt} moto{d.qt>1?"s":""} · {fm(d.rv)}</span></div>
           </div>
           <div style={{background:"#f0f0f0",borderRadius:20,height:10,overflow:"hidden"}}><div style={{width:Math.min(100,Math.abs(d.lu)/mx*100)+"%",height:"100%",background:d.lu>=0?"#43a047":"#e53935",borderRadius:20}}/></div>
         </div>))}
@@ -622,12 +604,12 @@ function Rl({motos,usuario}){
         {estoqueOrdenado.length===0&&<p style={{color:"#aaa",fontSize:14,textAlign:"center",padding:"20px 0"}}>Nenhuma moto no estoque.</p>}
         {estoqueOrdenado.map(m=>{const mep=margemEspPct(m);const dias=diasNoEstoque(m);const sm=semaforo(m);return(<div key={m.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #f5f5f5"}}>
           <span style={{fontSize:20,minWidth:26}}>{sm==="red"?"🔴":sm==="yellow"?"🟡":"🟢"}</span>
-          <div style={{flex:1}}><p style={{margin:0,fontWeight:700,fontSize:14}}>{m.marca} {m.modelo} <span style={{fontSize:12,color:"#888",fontWeight:400}}>{m.placa}</span></p><p style={{margin:"2px 0 0",fontSize:12,color:"#aaa"}}>{isMaster?`Custo:${fm(custoTotal(m))} · Preco:${fm(m.precoVenda||0)}`:""}{dias!==null?" · "+dias+"d":""}</p></div>
-          {isMaster&&<div style={{textAlign:"right"}}><p style={{margin:0,fontWeight:800,fontSize:15,color:mep>=10?"#2e7d32":mep>=0?"#f57f17":"#b71c1c"}}>{fp(mep)}</p><p style={{margin:0,fontSize:12,color:"#aaa"}}>{fm(margemEsp(m))}</p></div>}
+          <div style={{flex:1}}><p style={{margin:0,fontWeight:700,fontSize:14}}>{m.marca} {m.modelo} <span style={{fontSize:12,color:"#888",fontWeight:400}}>{m.placa}</span></p><p style={{margin:"2px 0 0",fontSize:12,color:"#aaa"}}>Custo:{fm(custoTotal(m))} · Preco:{fm(m.precoVenda||0)}{dias!==null?" · "+dias+"d":""}</p></div>
+          <div style={{textAlign:"right"}}><p style={{margin:0,fontWeight:800,fontSize:15,color:mep>=10?"#2e7d32":mep>=0?"#f57f17":"#b71c1c"}}>{fp(mep)}</p><p style={{margin:0,fontSize:12,color:"#aaa"}}>{fm(margemEsp(m))}</p></div>
         </div>);})}
       </div>)}
     </div>
-    {pm.length>0&&isMaster&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}>
+    {pm.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}>
       <p style={{margin:0,padding:"14px 16px",fontWeight:700,fontSize:14,borderBottom:"1px solid #eee"}}>Detalhamento por moto</p>
       {pm.map(m=>(<div key={m.id} style={{padding:"12px 16px",borderBottom:"1px solid #f5f5f5"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -806,7 +788,7 @@ function App(){
           </select>
         </div>
         {mf.length===0?<div style={{textAlign:"center",padding:"50px 0",color:"#aaa"}}><p style={{fontSize:48}}>🏍️</p><p style={{fontWeight:600,fontSize:15,marginTop:8}}>{busca?"Nenhuma moto encontrada":"Nenhuma moto cadastrada ainda"}</p></div>
-        :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>{mf.map(m=><Mc key={m.id} moto={m} onClick={()=>{setEdit(m);setTela("editar");}} totalCustoEstoque={totalCustoEstoque} usuario={usuario}/>)}</div>}
+        :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:12}}>{mf.map(m=><Mc key={m.id} moto={m} onClick={isMaster?()=>{setEdit(m);setTela("editar");}:undefined} totalCustoEstoque={totalCustoEstoque} usuario={usuario}/>)}</div>}
       </div>)}
       {tela==="metas"&&<Metas motos={motos} contas={contas} isMaster={isMaster}/>}
       {tela==="contas"&&isMaster&&<Co contas={contas} onSave={sc}/>}
@@ -817,10 +799,10 @@ function App(){
         <h2 style={{margin:"0 0 20px",fontSize:19}}>🏍️ Cadastrar Nova Moto</h2>
         <Mf onSave={savMoto} onCancel={()=>setTela("estoque")} usuario={usuario}/>
       </div>)}
-      {tela==="editar"&&edit&&(<div style={{background:"#fff",borderRadius:16,padding:20,border:"1.5px solid #eee"}}>
+      {tela==="editar"&&edit&&isMaster&&(<div style={{background:"#fff",borderRadius:16,padding:20,border:"1.5px solid #eee"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <h2 style={{margin:0,fontSize:18,flex:1,marginRight:10}}>{edit.marca} {edit.modelo}<br/><span style={{fontSize:13,color:"#888",fontWeight:400}}>{edit.placa}</span></h2>
-          {isMaster&&<button onClick={()=>delMoto(edit.id)} style={{background:"#fce4ec",color:"#c62828",border:"none",borderRadius:10,padding:"8px 14px",cursor:"pointer",fontSize:13,fontWeight:700}}>🗑️ Remover</button>}
+          <button onClick={()=>delMoto(edit.id)} style={{background:"#fce4ec",color:"#c62828",border:"none",borderRadius:10,padding:"8px 14px",cursor:"pointer",fontSize:13,fontWeight:700}}>🗑️ Remover</button>
         </div>
         <Mf initial={edit} onSave={savMoto} onCancel={()=>{setTela("estoque");setEdit(null);}} usuario={usuario}/>
       </div>)}
