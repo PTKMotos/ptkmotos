@@ -35,6 +35,7 @@ const td=()=>new Date().toISOString().slice(0,10);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const ma=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR",{month:"short",year:"numeric"}):"";
 const mesAtual=()=>{const n=new Date();return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0");};
+const mesNome=(m)=>{if(!m)return"";const[y,mo]=m.split("-");return new Date(Number(y),Number(mo)-1,1).toLocaleDateString("pt-BR",{month:"long",year:"numeric"});};
 const diasNoMes=()=>new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate();
 const diaAtual=()=>new Date().getDate();
 const diasNoEstoque=(m)=>{if(!m.dataCompra||m.status==="Vendida")return null;const diff=new Date()-new Date(m.dataCompra+"T12:00:00");return Math.floor(diff/86400000);};
@@ -45,6 +46,19 @@ const margemEspPct=(m)=>custoTotal(m)>0?(margemEsp(m)/custoTotal(m))*100:0;
 const margemReal=(m)=>Number(m.valorVenda||0)-custoTotal(m);
 const margemRealPct=(m)=>custoTotal(m)>0?(margemReal(m)/custoTotal(m))*100:0;
 const diasAteVencer=(c)=>{if(!c.vencimento||c.pago)return null;const diff=new Date(c.vencimento+"T12:00:00")-new Date();return Math.ceil(diff/86400000);};
+
+// ── Gestao mensal de contas ──────────────────────────────────────
+const gerarContasMes=(contas,mes)=>{
+  // Retorna contas do mes especifico + gera fixas se nao existirem
+  const doMes=contas.filter(c=>c.mes===mes);
+  const fixas=contas.filter(c=>c.fixa&&c.mes!==mes);
+  const fixasJaGeradas=new Set(doMes.filter(c=>c.origemFixaId).map(c=>c.origemFixaId));
+  const novasFixas=fixas.filter(c=>!fixasJaGeradas.has(c.id)&&!fixas.find(f=>f.origemFixaId===c.id&&f.mes===mes));
+  // Agrupa fixas por origemFixaId para pegar a mais recente
+  const fixasUnicas={};fixas.forEach(c=>{const key=c.origemFixaId||c.id;if(!fixasUnicas[key]||c.mes>fixasUnicas[key].mes)fixasUnicas[key]=c;});
+  const fixasParaGerar=Object.values(fixasUnicas).filter(c=>c.fixa&&!doMes.find(d=>d.origemFixaId===(c.origemFixaId||c.id)));
+  return{doMes,fixasParaGerar};};
+
 const CL=["Documento OK","Sem Multas","IPVA Pago","Licenciamento Pago","Chave Reserva","Manual","Pneus Bons","Freios OK","Relacao Boa","Motor Sem Vazamentos","Parte Eletrica OK","Suspensao OK","Carenagem OK","Pintura OK","Farois e Setas OK"];
 const FP=["Pix","Dinheiro","Transferencia","Financiamento","Cheque","Cartao","Outro"];
 const SC={"Em Estoque":{bg:"#e8f5e9",tx:"#2e7d32"},"Vendida":{bg:"#fce4ec",tx:"#b71c1c"},"Em Reforma":{bg:"#fff8e1",tx:"#f57f17"}};
@@ -77,38 +91,38 @@ function Login({onLogin}){
       </div>
       <p style={{textAlign:"center",margin:"20px 0 0",fontSize:12,color:"#ccc"}}>PTK Motos · Lapa · Sao Paulo</p>
     </div>
-  </div>);}function BarraMeta({label,atual,meta,formato,inverso}){
+  </div>);}function BarraMeta({atual,meta,formato,inverso}){
   const pct=meta>0?Math.min(100,(atual/meta)*100):0;
   const ritmoEsperado=(diaAtual()/diasNoMes())*100;
   const naFrente=inverso?(pct<=ritmoEsperado):(pct>=ritmoEsperado);
   const corBarra=pct>=100?"#2e7d32":naFrente?"#43a047":"#f57f17";
   const fmt=v=>formato==="moeda"?fm(v):formato==="pct"?fp(v):formato==="dias"?Math.round(v)+"d":String(Math.round(v));
-  return(<div style={{marginBottom:16}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-      <span style={{fontSize:13,fontWeight:700,color:"#333"}}>{label}</span>
-      <div style={{textAlign:"right"}}><span style={{fontSize:13,fontWeight:800,color:corBarra}}>{fmt(atual)}</span><span style={{fontSize:12,color:"#aaa",marginLeft:6}}>/ {fmt(meta)}</span></div>
+  return(<div>
+    <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+      <span style={{fontSize:13,fontWeight:800,color:corBarra}}>{fmt(atual)}</span>
+      <span style={{fontSize:12,color:"#aaa"}}>/ {fmt(meta)}</span>
     </div>
     <div style={{background:"#f0f0f0",borderRadius:20,height:14,overflow:"hidden",position:"relative"}}>
-      <div style={{position:"absolute",left:ritmoEsperado+"%",top:0,bottom:0,width:2,background:"#aaa",zIndex:2}}/>
-      <div style={{width:pct+"%",height:"100%",background:corBarra,borderRadius:20,transition:"width .3s"}}/>
+      <div style={{position:"absolute",left:ritmoEsperado+"%",top:0,bottom:0,width:2,background:"#888",zIndex:2}}/>
+      <div style={{width:pct+"%",height:"100%",background:corBarra,borderRadius:20}}/>
     </div>
     <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
-      <span style={{fontSize:11,color:naFrente?"#2e7d32":"#e65100",fontWeight:600}}>{naFrente?"✓ No ritmo":"⚠ Abaixo do ritmo"} ({fp(pct)})</span>
+      <span style={{fontSize:11,color:naFrente?"#2e7d32":"#e65100",fontWeight:600}}>{naFrente?"✓ No ritmo":"⚠ Abaixo"} ({fp(pct)})</span>
       <span style={{fontSize:11,color:"#aaa"}}>Esperado: {fp(ritmoEsperado)}</span>
     </div>
   </div>);}
 function Metas({motos,contas,isMaster}){
   const mesRef=mesAtual();
-  const[metas,setMetas]=useState({faturamento:0,lucro:0,qtdVendas:0,giroEstoque:0,margem:0,reducaoGastos:0,retiradaSocios:0,margemMinCompra:0});
+  const chave="ptk_metas_"+mesRef;
+  const chavePrev="ptk_metas_"+mesRef.slice(0,4)+"-"+String(Number(mesRef.slice(5))-1).padStart(2,"0");
+  const metasVazias={faturamento:0,lucro:0,qtdVendas:0,giroEstoque:0,margem:0,retiradaSocios:0,margemMinCompra:0};
+  const carregarMetas=()=>{const s=localStorage.getItem(chave);if(s)return JSON.parse(s);const prev=localStorage.getItem(chavePrev);if(prev)return{...JSON.parse(prev)};return metasVazias;};
+  const[metas,setMetas]=useState(carregarMetas);
   const[editando,setEditando]=useState(false);
   const[form,setForm]=useState({...metas});
-  const[salvando,setSalvando]=useState(false);
-  const[simPrecoVenda,setSimPrecoVenda]=useState("");
-  const[simMargem,setSimMargem]=useState("20");
-  const[simCusto,setSimCusto]=useState("");
-  const[simMargemInv,setSimMargemInv]=useState("20");
-  useEffect(()=>{const salvas=localStorage.getItem("ptk_metas_"+mesRef);if(salvas){const m=JSON.parse(salvas);setMetas(m);setForm(m);}},[]);
-  const salvar=()=>{setSalvando(true);localStorage.setItem("ptk_metas_"+mesRef,JSON.stringify(form));setMetas({...form});setEditando(false);setSalvando(false);};
+  const[simPrecoVenda,setSimPrecoVenda]=useState("");const[simMargem,setSimMargem]=useState("20");
+  const[simCusto,setSimCusto]=useState("");const[simMargemInv,setSimMargemInv]=useState("20");
+  const salvar=()=>{localStorage.setItem(chave,JSON.stringify(form));setMetas({...form});setEditando(false);};
   const ve=motos.filter(m=>m.status==="Vendida"&&m.dataVenda&&m.dataVenda.startsWith(mesRef));
   const fatBruto=ve.reduce((s,m)=>s+Number(m.valorVenda||0),0);
   const lucroMes=ve.reduce((s,m)=>s+margemReal(m),0);
@@ -116,89 +130,91 @@ function Metas({motos,contas,isMaster}){
   const estoqueAtivo=motos.filter(m=>m.status!=="Vendida");
   const diasMediosEstoque=estoqueAtivo.length?estoqueAtivo.reduce((s,m)=>s+(diasNoEstoque(m)||0),0)/estoqueAtivo.length:0;
   const margemMedMes=ve.length?ve.reduce((s,m)=>s+margemRealPct(m),0)/ve.length:0;
-  const retiradaMes=contas.filter(c=>c.cat==="Retirada Socios"&&c.vencimento&&c.vencimento.startsWith(mesRef)).reduce((s,c)=>s+Number(c.val),0);
+  const contasMes=contas.filter(c=>c.mes===mesRef);
+  const retiradaMes=contasMes.filter(c=>c.cat==="Retirada Socios").reduce((s,c)=>s+Number(c.val),0);
   const simMaxPagar=simPrecoVenda&&simMargem?Number(simPrecoVenda)/(1+Number(simMargem)/100):null;
   const simMinVender=simCusto&&simMargemInv?Number(simCusto)*(1+Number(simMargemInv)/100):null;
   const Card=({icon,label,atual,meta,formato,inverso})=>{
     const pct=meta>0?Math.min(100,(atual/meta)*100):0;
     const fmt=v=>formato==="moeda"?fm(v):formato==="pct"?fp(v):formato==="dias"?Math.round(v)+"d":String(Math.round(v));
-    const bom=pct>=100;
-    const ritmo=(diaAtual()/diasNoMes())*100;
-    const naFrente=inverso?(pct<=ritmo):(pct>=ritmo);
+    const bom=pct>=100;const ritmo=(diaAtual()/diasNoMes())*100;const naFrente=inverso?(pct<=ritmo):(pct>=ritmo);
     return(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-        <div><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{icon} {label}</p><p style={{margin:"4px 0 0",fontSize:20,fontWeight:900,color:bom?"#2e7d32":naFrente?"#43a047":"#b71c1c"}}>{fmt(atual)}</p></div>
-        <span style={{fontSize:12,fontWeight:700,padding:"4px 10px",borderRadius:20,background:bom?"#e8f5e9":"#f5f5f5",color:bom?"#2e7d32":"#666"}}>{meta>0?fp(pct):"—"}</span>
-      </div>
-      {meta>0&&(<div style={{background:"#f0f0f0",borderRadius:20,height:10,overflow:"hidden",position:"relative"}}>
-        <div style={{position:"absolute",left:ritmo+"%",top:0,bottom:0,width:2,background:"#aaa",zIndex:2}}/>
-        <div style={{width:pct+"%",height:"100%",background:bom?"#2e7d32":naFrente?"#43a047":"#f57f17",borderRadius:20}}/>
-      </div>)}
+      <p style={{margin:"0 0 6px",fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{icon} {label}</p>
+      {meta>0?<BarraMeta atual={atual} meta={meta} formato={formato} inverso={inverso}/>:<p style={{margin:0,fontSize:20,fontWeight:900,color:"#ccc"}}>{fmt(atual)} <span style={{fontSize:12,color:"#ccc"}}>sem meta</span></p>}
       <p style={{margin:"6px 0 0",fontSize:11,color:"#aaa"}}>Meta: {meta>0?fmt(meta):"Nao definida"}</p>
     </div>);};
+  // Historico de metas dos ultimos 6 meses
+  const historico=[];
+  for(let i=1;i<=6;i++){const d=new Date();d.setMonth(d.getMonth()-i);const m=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");const s=localStorage.getItem("ptk_metas_"+m);if(s)historico.push({mes:m,metas:JSON.parse(s)});}
   return(<div style={{display:"flex",flexDirection:"column",gap:16}}>
     <div style={{background:"linear-gradient(135deg,#c62828,#b71c1c)",borderRadius:16,padding:20,color:"#fff"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-        <div><p style={{margin:0,fontSize:12,opacity:.8}}>Acompanhamento de Metas</p><p style={{margin:"4px 0 0",fontWeight:900,fontSize:20}}>{new Date().toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</p><p style={{margin:"4px 0 0",fontSize:12,opacity:.8}}>Dia {diaAtual()} de {diasNoMes()} · {fp(diaAtual()/diasNoMes()*100)} do mes</p></div>
-        {isMaster&&<button onClick={()=>setEditando(!editando)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:10,padding:"8px 14px",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>{editando?"✕ Cancelar":"✏️ Definir Metas"}</button>}
+        <div><p style={{margin:0,fontSize:12,opacity:.8}}>Metas de</p><p style={{margin:"4px 0 0",fontWeight:900,fontSize:20}}>{mesNome(mesRef)}</p><p style={{margin:"4px 0 0",fontSize:12,opacity:.8}}>Dia {diaAtual()} de {diasNoMes()} · {fp(diaAtual()/diasNoMes()*100)} do mes</p></div>
+        {isMaster&&<button onClick={()=>{setForm({...metas});setEditando(!editando);}} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:10,padding:"8px 14px",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>{editando?"✕ Cancelar":"✏️ Editar Metas"}</button>}
       </div>
       <div style={{marginTop:14,display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}} className="grid3">
-        {[["Vendas",qtdVendas,metas.qtdVendas],["Fat. Bruto",fm(fatBruto),fm(metas.faturamento)],["Lucro",fm(lucroMes),fm(metas.lucro)]].map(([l,a,m])=>(<div key={l} style={{background:"rgba(255,255,255,0.15)",borderRadius:10,padding:"10px 12px"}}><p style={{margin:0,fontSize:10,opacity:.8}}>{l}</p><p style={{margin:"2px 0",fontWeight:800,fontSize:15}}>{a}</p><p style={{margin:0,fontSize:10,opacity:.7}}>Meta: {m}</p></div>))}
+        {[["Vendas",qtdVendas,metas.qtdVendas],["Faturamento",fm(fatBruto),fm(metas.faturamento)],["Lucro",fm(lucroMes),fm(metas.lucro)]].map(([l,a,m])=>(<div key={l} style={{background:"rgba(255,255,255,0.15)",borderRadius:10,padding:"10px 12px"}}><p style={{margin:0,fontSize:10,opacity:.8}}>{l}</p><p style={{margin:"2px 0",fontWeight:800,fontSize:14}}>{a}</p><p style={{margin:0,fontSize:10,opacity:.7}}>Meta: {m}</p></div>))}
       </div>
     </div>
     {editando&&isMaster&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:20}}>
-      <p style={{margin:"0 0 16px",fontWeight:700,fontSize:15}}>✏️ Definir Metas — {new Date().toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</p>
+      <p style={{margin:"0 0 16px",fontWeight:700,fontSize:15}}>✏️ Metas — {mesNome(mesRef)}</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}} className="grid2">
-        <Fi label="Meta Faturamento Bruto R$" type="number" value={form.faturamento||""} onChange={e=>setForm(p=>({...p,faturamento:Number(e.target.value)}))} inputMode="decimal"/>
-        <Fi label="Meta Lucro Liquido R$" type="number" value={form.lucro||""} onChange={e=>setForm(p=>({...p,lucro:Number(e.target.value)}))} inputMode="decimal"/>
-        <Fi label="Meta Motos Vendidas" type="number" value={form.qtdVendas||""} onChange={e=>setForm(p=>({...p,qtdVendas:Number(e.target.value)}))} inputMode="numeric"/>
-        <Fi label="Meta Giro Estoque (dias)" type="number" value={form.giroEstoque||""} onChange={e=>setForm(p=>({...p,giroEstoque:Number(e.target.value)}))} inputMode="numeric"/>
-        <Fi label="Meta Margem Media %" type="number" value={form.margem||""} onChange={e=>setForm(p=>({...p,margem:Number(e.target.value)}))} inputMode="decimal"/>
-        <Fi label="Meta Retirada Socios R$" type="number" value={form.retiradaSocios||""} onChange={e=>setForm(p=>({...p,retiradaSocios:Number(e.target.value)}))} inputMode="decimal"/>
-        <Fi label="Margem Minima por Compra %" type="number" value={form.margemMinCompra||""} onChange={e=>setForm(p=>({...p,margemMinCompra:Number(e.target.value)}))} inputMode="decimal"/>
+        <Fi label="Faturamento Bruto R$" type="number" value={form.faturamento||""} onChange={e=>setForm(p=>({...p,faturamento:Number(e.target.value)}))} inputMode="decimal"/>
+        <Fi label="Lucro Liquido R$" type="number" value={form.lucro||""} onChange={e=>setForm(p=>({...p,lucro:Number(e.target.value)}))} inputMode="decimal"/>
+        <Fi label="Motos Vendidas" type="number" value={form.qtdVendas||""} onChange={e=>setForm(p=>({...p,qtdVendas:Number(e.target.value)}))} inputMode="numeric"/>
+        <Fi label="Giro Estoque (dias max)" type="number" value={form.giroEstoque||""} onChange={e=>setForm(p=>({...p,giroEstoque:Number(e.target.value)}))} inputMode="numeric"/>
+        <Fi label="Margem Media %" type="number" value={form.margem||""} onChange={e=>setForm(p=>({...p,margem:Number(e.target.value)}))} inputMode="decimal"/>
+        <Fi label="Retirada Socios R$" type="number" value={form.retiradaSocios||""} onChange={e=>setForm(p=>({...p,retiradaSocios:Number(e.target.value)}))} inputMode="decimal"/>
+        <Fi label="Margem Min por Compra %" type="number" value={form.margemMinCompra||""} onChange={e=>setForm(p=>({...p,margemMinCompra:Number(e.target.value)}))} inputMode="decimal"/>
       </div>
-      <div style={{marginTop:14}}><Btn onClick={salvar} label={salvando?"Salvando...":"💾 Salvar Metas"} full disabled={salvando}/></div>
+      <div style={{marginTop:14}}><Btn onClick={salvar} label="💾 Salvar Metas" full/></div>
     </div>)}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}} className="grid2">
-      <Card icon="💰" label="Faturamento Bruto" atual={fatBruto} meta={metas.faturamento} formato="moeda"/>
-      <Card icon="📈" label="Lucro Liquido" atual={lucroMes} meta={metas.lucro} formato="moeda"/>
+      <Card icon="💰" label="Faturamento" atual={fatBruto} meta={metas.faturamento} formato="moeda"/>
+      <Card icon="📈" label="Lucro" atual={lucroMes} meta={metas.lucro} formato="moeda"/>
       <Card icon="🏍️" label="Motos Vendidas" atual={qtdVendas} meta={metas.qtdVendas} formato="qtd"/>
       <Card icon="⏱️" label="Giro Estoque" atual={diasMediosEstoque} meta={metas.giroEstoque} formato="dias" inverso/>
       <Card icon="📊" label="Margem Media" atual={margemMedMes} meta={metas.margem} formato="pct"/>
       <Card icon="🏦" label="Retirada Socios" atual={retiradaMes} meta={metas.retiradaSocios} formato="moeda"/>
     </div>
-    {metas.margemMinCompra>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>📋 Vendas do mes vs Meta de Margem ({fp(metas.margemMinCompra)})</p>
-      {ve.length===0&&<p style={{color:"#aaa",fontSize:13,textAlign:"center",padding:"10px 0"}}>Nenhuma venda registrada este mes.</p>}
+    {metas.margemMinCompra>0&&ve.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>📋 Vendas vs Meta de Margem ({fp(metas.margemMinCompra)})</p>
       {ve.map(m=>{const mr=margemRealPct(m);const ok=mr>=metas.margemMinCompra;return(<div key={m.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f5f5f5",fontSize:13}}><span><b>{m.marca} {m.modelo}</b> · {m.placa}</span><span style={{fontWeight:700,color:ok?"#2e7d32":"#b71c1c"}}>{fp(mr)} {ok?"✓":"✗"}</span></div>);})}
     </div>)}
     <div style={{background:"#fff",border:"1.5px solid #1565c0",borderRadius:14,padding:20}}>
-      <p style={{margin:"0 0 16px",fontWeight:700,fontSize:15,color:"#1565c0"}}>🧮 Simulador de Compra e Venda</p>
+      <p style={{margin:"0 0 16px",fontWeight:700,fontSize:15,color:"#1565c0"}}>🧮 Simulador</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}} className="grid2">
         <div style={{background:"#e3f2fd",borderRadius:12,padding:14}}>
-          <p style={{margin:"0 0 10px",fontWeight:700,fontSize:13,color:"#1565c0"}}>Quanto posso pagar?</p>
-          <p style={{margin:"0 0 8px",fontSize:12,color:"#555"}}>Se quero vender por X com margem Y%</p>
+          <p style={{margin:"0 0 8px",fontWeight:700,fontSize:13,color:"#1565c0"}}>Quanto posso pagar?</p>
           <Fi label="Preco de Venda R$" type="number" value={simPrecoVenda} onChange={e=>setSimPrecoVenda(e.target.value)} inputMode="decimal"/>
           <div style={{marginTop:8}}><Fi label="Margem Desejada %" type="number" value={simMargem} onChange={e=>setSimMargem(e.target.value)} inputMode="decimal"/></div>
-          {simMaxPagar&&(<div style={{marginTop:12,background:"#1565c0",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
-            <p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.8)"}}>CUSTO MAXIMO A PAGAR</p>
-            <p style={{margin:"4px 0 0",fontWeight:900,fontSize:24,color:"#fff"}}>{fm(simMaxPagar)}</p>
-            <p style={{margin:"4px 0 0",fontSize:11,color:"rgba(255,255,255,0.7)"}}>Lucro esperado: {fm(Number(simPrecoVenda)-simMaxPagar)}</p>
+          {simMaxPagar&&(<div style={{marginTop:12,background:"#1565c0",borderRadius:10,padding:"12px",textAlign:"center"}}>
+            <p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.8)"}}>CUSTO MAXIMO</p>
+            <p style={{margin:"4px 0 0",fontWeight:900,fontSize:22,color:"#fff"}}>{fm(simMaxPagar)}</p>
+            <p style={{margin:"2px 0 0",fontSize:11,color:"rgba(255,255,255,0.7)"}}>Lucro: {fm(Number(simPrecoVenda)-simMaxPagar)}</p>
           </div>)}
         </div>
         <div style={{background:"#f1f8e9",borderRadius:12,padding:14}}>
-          <p style={{margin:"0 0 10px",fontWeight:700,fontSize:13,color:"#2e7d32"}}>Quanto devo vender?</p>
-          <p style={{margin:"0 0 8px",fontSize:12,color:"#555"}}>Se paguei X e quero margem Y%</p>
+          <p style={{margin:"0 0 8px",fontWeight:700,fontSize:13,color:"#2e7d32"}}>Quanto devo vender?</p>
           <Fi label="Custo Total R$" type="number" value={simCusto} onChange={e=>setSimCusto(e.target.value)} inputMode="decimal"/>
           <div style={{marginTop:8}}><Fi label="Margem Desejada %" type="number" value={simMargemInv} onChange={e=>setSimMargemInv(e.target.value)} inputMode="decimal"/></div>
-          {simMinVender&&(<div style={{marginTop:12,background:"#2e7d32",borderRadius:10,padding:"12px 14px",textAlign:"center"}}>
-            <p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.8)"}}>PRECO MINIMO DE VENDA</p>
-            <p style={{margin:"4px 0 0",fontWeight:900,fontSize:24,color:"#fff"}}>{fm(simMinVender)}</p>
-            <p style={{margin:"4px 0 0",fontSize:11,color:"rgba(255,255,255,0.7)"}}>Lucro esperado: {fm(simMinVender-Number(simCusto))}</p>
+          {simMinVender&&(<div style={{marginTop:12,background:"#2e7d32",borderRadius:10,padding:"12px",textAlign:"center"}}>
+            <p style={{margin:0,fontSize:11,color:"rgba(255,255,255,0.8)"}}>PRECO MINIMO</p>
+            <p style={{margin:"4px 0 0",fontWeight:900,fontSize:22,color:"#fff"}}>{fm(simMinVender)}</p>
+            <p style={{margin:"2px 0 0",fontSize:11,color:"rgba(255,255,255,0.7)"}}>Lucro: {fm(simMinVender-Number(simCusto))}</p>
           </div>)}
         </div>
       </div>
     </div>
+    {historico.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
+      <p style={{margin:"0 0 14px",fontWeight:700,fontSize:14}}>📅 Historico de Metas</p>
+      {historico.map(h=>(<div key={h.mes} style={{padding:"10px 0",borderBottom:"1px solid #f5f5f5"}}>
+        <p style={{margin:"0 0 6px",fontWeight:700,fontSize:13,color:"#555",textTransform:"capitalize"}}>{mesNome(h.mes)}</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}} className="grid3">
+          {[["Fat.",h.metas.faturamento,"moeda"],["Lucro",h.metas.lucro,"moeda"],["Motos",h.metas.qtdVendas,"qtd"]].map(([l,v,f])=>(<div key={l} style={{background:"#f9f9f9",borderRadius:8,padding:"8px 10px"}}><p style={{margin:0,fontSize:10,color:"#aaa"}}>{l}</p><p style={{margin:"2px 0 0",fontWeight:700,fontSize:13}}>{f==="moeda"?fm(v):v}</p></div>))}
+        </div>
+      </div>))}
+    </div>)}
   </div>);}function Du({label,value,onChange}){
   const tb=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res({name:f.name,type:f.type,data:r.result});r.onerror=rej;r.readAsDataURL(f);});
   const h=async e=>{const f=e.target.files[0];if(!f)return;if(f.size>3*1024*1024){alert("Max 3MB");return;}onChange(await tb(f));};
@@ -245,7 +261,7 @@ function GerarLegenda({moto}){
       const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt}]})});
       const data=await res.json();
       setLegenda(data.content?.map(x=>x.text||"").join("").trim());
-    }catch(e){setLegenda("Erro ao gerar legenda. Tente novamente.");}
+    }catch(e){setLegenda("Erro ao gerar. Tente novamente.");}
     setLoading(false);
   };
   const copiar=()=>{navigator.clipboard.writeText(legenda).then(()=>{setCopiado(true);setTimeout(()=>setCopiado(false),2000);});};
@@ -312,17 +328,10 @@ function Mf({initial,onSave,onCancel,usuario}){
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}} className="grid2">
         <Se label="Tipo de Entrada" value={f.tipoEntrada||"Compra"} onChange={e=>st("tipoEntrada",e.target.value)}><option>Compra</option><option>Troca</option></Se>
         <Se label="Status" value={f.status} onChange={e=>st("status",e.target.value)}>{Object.keys(SC).map(s=><option key={s}>{s}</option>)}</Se>
-        {isMaster?(<>
-          <Fi label="Valor Compra R$" type="number" value={f.valorCompra} onChange={e=>st("valorCompra",e.target.value)} inputMode="decimal"/>
-          <Se label="Forma Pgto" value={f.formaPgtoCompra} onChange={e=>st("formaPgtoCompra",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>
-          <Fi label="Data Entrada" type="date" value={f.dataCompra} onChange={e=>st("dataCompra",e.target.value)}/>
-          <Fi label="Preco Venda Pretendido R$" type="number" value={f.precoVenda||""} onChange={e=>st("precoVenda",e.target.value)} inputMode="decimal"/>
-        </>):(<>
-          <Fi label="Valor Compra R$" type="number" value={f.valorCompra} onChange={e=>st("valorCompra",e.target.value)} inputMode="decimal"/>
-          <Se label="Forma Pgto" value={f.formaPgtoCompra} onChange={e=>st("formaPgtoCompra",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>
-          <Fi label="Data Entrada" type="date" value={f.dataCompra} onChange={e=>st("dataCompra",e.target.value)}/>
-          <Fi label="Preco Venda Pretendido R$" type="number" value={f.precoVenda||""} onChange={e=>st("precoVenda",e.target.value)} inputMode="decimal"/>
-        </>)}
+        <Fi label="Valor Compra R$" type="number" value={f.valorCompra} onChange={e=>st("valorCompra",e.target.value)} inputMode="decimal"/>
+        <Se label="Forma Pgto" value={f.formaPgtoCompra} onChange={e=>st("formaPgtoCompra",e.target.value)}>{FP.map(x=><option key={x}>{x}</option>)}</Se>
+        <Fi label="Data Entrada" type="date" value={f.dataCompra} onChange={e=>st("dataCompra",e.target.value)}/>
+        <Fi label="Preco Venda Pretendido R$" type="number" value={f.precoVenda||""} onChange={e=>st("precoVenda",e.target.value)} inputMode="decimal"/>
       </div>
       {f.tipoEntrada==="Troca"&&(<div style={{background:"#e3f2fd",borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:10}}>
         <p style={{margin:0,fontWeight:700,color:"#1565c0",fontSize:13}}>🔄 MOTO RECEBIDA NA TROCA</p>
@@ -443,6 +452,7 @@ function Mf({initial,onSave,onCancel,usuario}){
   </div>);}
 function Db({motos,contas,usuario}){
   const isMaster=usuario?.role==="master";
+  const mes=mesAtual();
   const es=motos.filter(m=>m.status==="Em Estoque");
   const ve=motos.filter(m=>m.status==="Vendida");
   const re=motos.filter(m=>m.status==="Em Reforma");
@@ -457,8 +467,9 @@ function Db({motos,contas,usuario}){
   const margemRealGeral=totalCustoVendidas>0?(lucroReal/totalCustoVendidas*100):0;
   const margemEspGeral=totalCustoEstoque>0?(totalLucroEsp/totalCustoEstoque*100):0;
   const hoje=td();
-  const contasVencidas=contas.filter(c=>!c.pago&&c.vencimento&&c.vencimento<hoje);
-  const contasVencendo=contas.filter(c=>{const d=diasAteVencer(c);return d!==null&&d>=0&&d<=7;});
+  const contasMes=contas.filter(c=>c.mes===mes);
+  const contasVencidas=contasMes.filter(c=>!c.pago&&c.vencimento&&c.vencimento<=hoje);
+  const contasVencendo=contasMes.filter(c=>{const d=diasAteVencer(c);return d!==null&&d>=0&&d<=7;});
   const Ca=({label,value,sub,color})=>(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{label}</p><p style={{margin:"6px 0 0",fontSize:20,fontWeight:900,color:color||"#1a1a1a"}}>{value}</p>{sub&&<p style={{margin:"2px 0 0",fontSize:11,color:"#aaa"}}>{sub}</p>}</div>);
   return(<div style={{display:"flex",flexDirection:"column",gap:14}}>
     {isMaster&&contasVencidas.length>0&&(<div style={{background:"#fce4ec",border:"1.5px solid #e53935",borderRadius:14,padding:14}}>
@@ -519,6 +530,147 @@ function Db({motos,contas,usuario}){
         </div>
       </div>))}
     </div>)}
+  </div>);}function Co({contas,onSave}){
+  const mes=mesAtual();
+  const[mesSel,setMesSel]=useState(mes);
+  const[verHistorico,setVerHistorico]=useState(false);
+  const[nd,setNd]=useState("");const[nc,setNc]=useState(CC[0]);const[nv,setNv]=useState("");
+  const[nvn,setNvn]=useState("");const[np,setNp]=useState("");const[nf,setNf]=useState(false);
+  const[verDetalhes,setVerDetalhes]=useState(false);
+  const[ca,setCa]=useState("Todas");
+
+  // Ao entrar no mes, gera contas fixas automaticamente
+  useEffect(()=>{
+    const fixas=contas.filter(c=>c.fixa);
+    if(fixas.length===0)return;
+    const doMesAtual=contas.filter(c=>c.mes===mes);
+    const origens=new Set(doMesAtual.map(c=>c.origemFixaId).filter(Boolean));
+    // Para cada conta fixa que nao tem copia no mes atual
+    const fixasPorOrigem={};
+    fixas.forEach(c=>{const key=c.origemFixaId||c.id;if(!fixasPorOrigem[key]||c.mes>fixasPorOrigem[key].mes)fixasPorOrigem[key]=c;});
+    const novas=Object.values(fixasPorOrigem).filter(c=>{const key=c.origemFixaId||c.id;return!origens.has(key)&&!doMesAtual.find(d=>(d.origemFixaId||d.id)===key);});
+    if(novas.length>0){
+      const geradas=novas.map(c=>({...c,id:uid(),mes,pago:false,dataPgto:"",origemFixaId:c.origemFixaId||c.id,vencimento:mes+"-"+(c.vencimento?c.vencimento.slice(8):"10")}));
+      onSave([...contas,...geradas]);
+    }
+  },[mes]);
+
+  const add=()=>{if(!nd||!nv)return;onSave([...contas,{id:uid(),desc:nd,cat:nc,val:Number(nv),vencimento:nvn,dataPgto:np,pago:!!np,fixa:nf,mes,origemFixaId:null}]);setNd("");setNv("");setNvn("");setNp("");setNf(false);};
+  const tg=(id)=>onSave(contas.map(c=>c.id===id?{...c,pago:!c.pago,dataPgto:!c.pago?td():""}:c));
+  const rm=(id)=>{if(!confirm("Remover?"))return;onSave(contas.filter(c=>c.id!==id));};
+  const up=(id,k,v)=>onSave(contas.map(c=>c.id===id?{...c,[k]:v}:c));
+
+  const contasMes=contas.filter(c=>c.mes===mesSel);
+  const fl=ca==="Todas"?contasMes:contasMes.filter(c=>c.cat===ca);
+  const totalGeral=contasMes.reduce((s,c)=>s+Number(c.val),0);
+  const tp=contasMes.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);
+  const tpn=contasMes.filter(c=>!c.pago).reduce((s,c)=>s+Number(c.val),0);
+  const hoje=td();
+  const venc=contasMes.filter(c=>!c.pago&&c.vencimento&&c.vencimento<=hoje);
+  const venc7=contasMes.filter(c=>{const d=diasAteVencer(c);return d!==null&&d>=0&&d<=7;});
+  const pc=CC.map(ct=>{const itens=contasMes.filter(c=>c.cat===ct);const tot=itens.reduce((s,c)=>s+Number(c.val),0);const pg=itens.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);const pct=totalGeral>0?(tot/totalGeral*100):0;return{ct,tot,pg,pct,itens};}).filter(x=>x.tot>0).sort((a,b)=>b.tot-a.tot);
+  const mx=Math.max(...pc.map(x=>x.tot),1);
+
+  // Meses disponíveis para historico
+  const mesesDisp=[...new Set(contas.map(c=>c.mes).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  if(!mesesDisp.includes(mes))mesesDisp.unshift(mes);
+
+  // Resumo por mes para historico
+  const resumoMeses=mesesDisp.map(m=>{const cs=contas.filter(c=>c.mes===m);return{mes:m,total:cs.reduce((s,c)=>s+Number(c.val),0),pago:cs.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0),pendente:cs.filter(c=>!c.pago).reduce((s,c)=>s+Number(c.val),0),qtd:cs.length};});
+
+  const expExcel=()=>{exportExcelDireto(contasMes.map(c=>({"Mes":mesSel,"Descricao":c.desc,"Categoria":c.cat,"Valor":Number(c.val),"Vencimento":fd(c.vencimento),"Pago":c.pago?"Sim":"Nao","Data Pgto":fd(c.dataPgto),"Fixa":c.fixa?"Sim":"Nao","% Total":totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"})),`PTK_Contas_${mesSel}`);};
+  const expPDF=()=>{const rowsCat=pc.map(x=>`<tr><td><b>${x.ct}</b></td><td>${fm(x.tot)}</td><td><b>${fp(x.pct)}</b></td><td>${fm(x.pg)}</td><td style="color:#b71c1c">${fm(x.tot-x.pg)}</td></tr>`).join("");const rowsItens=contasMes.map(c=>`<tr><td>${c.desc}</td><td>${c.cat}</td><td>${fm(c.val)}</td><td>${totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"}</td><td style="color:${c.pago?"#2e7d32":"#b71c1c"}">${c.pago?"Pago":"Pendente"}</td><td>${fd(c.vencimento)}</td></tr>`).join("");exportPDF(`Contas PTK ${mesNome(mesSel)}`,`<h1>Contas — ${mesNome(mesSel)}</h1><p>Total:${fm(totalGeral)} | Pago:${fm(tp)} | Pendente:${fm(tpn)}</p><br><h2 style="color:#c62828;font-size:14px">Por Categoria</h2><table><thead><tr><th>Categoria</th><th>Total</th><th>% Total</th><th>Pago</th><th>Pendente</th></tr></thead><tbody>${rowsCat}</tbody></table><br><h2 style="color:#c62828;font-size:14px">Por Conta</h2><table><thead><tr><th>Descricao</th><th>Categoria</th><th>Valor</th><th>% Total</th><th>Status</th><th>Vencimento</th></tr></thead><tbody>${rowsItens}</tbody></table>`);};
+
+  return(<div style={{display:"flex",flexDirection:"column",gap:14}}>
+    {/* Seletor de mes */}
+    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:14}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <p style={{margin:0,fontWeight:700,fontSize:14}}>🗓️ Periodo</p>
+        <button onClick={()=>setVerHistorico(!verHistorico)} style={{padding:"6px 12px",border:"1.5px solid #ddd",borderRadius:10,background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#555"}}>{verHistorico?"Ocultar historico":"📊 Ver historico"}</button>
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {mesesDisp.slice(0,6).map(m=>(<button key={m} onClick={()=>setMesSel(m)} style={{padding:"7px 14px",border:"1.5px solid",borderColor:mesSel===m?"#c62828":"#ddd",borderRadius:20,background:mesSel===m?"#c62828":"#fff",color:mesSel===m?"#fff":"#555",fontSize:13,fontWeight:600,cursor:"pointer",textTransform:"capitalize"}}>{mesNome(m).split(" ")[0]} {m.slice(0,4)}</button>))}
+      </div>
+    </div>
+
+    {/* Historico comparativo */}
+    {verHistorico&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>📊 Comparativo Mensal</p>
+      {resumoMeses.map(r=>(<div key={r.mes} style={{padding:"10px 0",borderBottom:"1px solid #f5f5f5",cursor:"pointer"}} onClick={()=>{setMesSel(r.mes);setVerHistorico(false);}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <span style={{fontWeight:700,fontSize:13,textTransform:"capitalize",color:r.mes===mes?"#c62828":"#333"}}>{mesNome(r.mes)} {r.mes===mes?"(atual)":""}</span>
+          <span style={{fontSize:12,color:"#888"}}>{r.qtd} conta{r.qtd!==1?"s":""}</span>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          <div style={{background:"#f9f9f9",borderRadius:8,padding:"6px 10px"}}><p style={{margin:0,fontSize:10,color:"#aaa"}}>Total</p><p style={{margin:"2px 0 0",fontWeight:700,fontSize:13}}>{fm(r.total)}</p></div>
+          <div style={{background:"#e8f5e9",borderRadius:8,padding:"6px 10px"}}><p style={{margin:0,fontSize:10,color:"#aaa"}}>Pago</p><p style={{margin:"2px 0 0",fontWeight:700,fontSize:13,color:"#2e7d32"}}>{fm(r.pago)}</p></div>
+          <div style={{background:"#fce4ec",borderRadius:8,padding:"6px 10px"}}><p style={{margin:0,fontSize:10,color:"#aaa"}}>Pendente</p><p style={{margin:"2px 0 0",fontWeight:700,fontSize:13,color:"#b71c1c"}}>{fm(r.pendente)}</p></div>
+        </div>
+      </div>))}
+    </div>)}
+
+    {venc.length>0&&mesSel===mes&&(<div style={{background:"#fce4ec",border:"1.5px solid #e53935",borderRadius:14,padding:14}}><p style={{margin:"0 0 8px",fontWeight:700,fontSize:14,color:"#b71c1c"}}>🔴 {venc.length} conta{venc.length>1?"s":""} vencida{venc.length>1?"s":""}!</p>{venc.map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #ffcdd2"}}><span>{c.desc}</span><span style={{fontWeight:700,color:"#b71c1c"}}>{fm(c.val)}</span></div>))}</div>)}
+    {venc7.length>0&&mesSel===mes&&(<div style={{background:"#fff8e1",border:"1.5px solid #ffa000",borderRadius:14,padding:14}}><p style={{margin:"0 0 8px",fontWeight:700,fontSize:14,color:"#e65100"}}>⚠️ Vencendo em ate 7 dias</p>{venc7.map(c=>{const d=diasAteVencer(c);return(<div key={c.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #ffe082"}}><span>{c.desc}</span><span style={{fontWeight:700,color:"#e65100"}}>{d===0?"Hoje":d===1?"Amanha":d+"d"} · {fm(c.val)}</span></div>);})}</div>)}
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}} className="grid3">
+      {[["Total",totalGeral,"#37474f"],["Pago",tp,"#2e7d32"],["Pendente",tpn,"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:14}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:18,fontWeight:900,color:c}}>{fm(v)}</p></div>))}
+    </div>
+    <div style={{display:"flex",gap:8}}><BtnExp onClick={expExcel} label="📊 Excel" color="#1b5e20"/><BtnExp onClick={expPDF} label="📄 PDF" color="#b71c1c"/></div>
+
+    {pc.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><p style={{margin:0,fontWeight:700,fontSize:14}}>Gastos por categoria</p><button onClick={()=>setVerDetalhes(!verDetalhes)} style={{padding:"6px 12px",border:"1.5px solid #ddd",borderRadius:10,background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#555"}}>{verDetalhes?"Ocultar":"Ver contas"}</button></div>
+      {pc.map(x=>(<div key={x.ct} style={{marginBottom:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}><span style={{fontSize:14,fontWeight:700,color:CR[x.ct]||"#333"}}>{x.ct}</span><div style={{textAlign:"right"}}><span style={{fontSize:14,fontWeight:800}}>{fm(x.tot)}</span><span style={{fontSize:12,fontWeight:700,color:"#666",marginLeft:8,background:"#f5f5f5",padding:"3px 8px",borderRadius:10}}>{fp(x.pct)}</span></div></div>
+        <div style={{background:"#f0f0f0",borderRadius:20,height:12,overflow:"hidden",position:"relative",marginBottom:4}}><div style={{width:fp(x.tot/mx*100),height:"100%",background:CR[x.ct]||"#888",borderRadius:20,opacity:.25,position:"absolute"}}/><div style={{width:fp(x.pg/mx*100),height:"100%",background:CR[x.ct]||"#888",borderRadius:20,position:"absolute"}}/></div>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{color:"#aaa"}}>Pago: {fm(x.pg)}</span><span style={{color:"#c62828"}}>Pendente: {fm(x.tot-x.pg)}</span></div>
+        {verDetalhes&&x.itens.length>0&&(<div style={{marginTop:8,paddingLeft:12,borderLeft:"3px solid "+(CR[x.ct]||"#ddd")}}>{x.itens.map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f5f5f5",fontSize:13}}><span style={{color:c.pago?"#aaa":"#333",textDecoration:c.pago?"line-through":"none",flex:1,marginRight:8}}>{c.desc}{c.fixa&&<span style={{marginLeft:6,fontSize:10,background:"#e3f2fd",color:"#1565c0",padding:"2px 6px",borderRadius:8"}}>FIXA</span>}</span><div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}><span style={{color:"#aaa",fontSize:12}}>{totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"}</span><span style={{fontWeight:700,color:c.pago?"#2e7d32":"#c62828"}}>{fm(c.val)}</span></div></div>))}</div>)}
+      </div>))}
+    </div>)}
+
+    {mesSel===mes&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>+ Nova conta — {mesNome(mes)}</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}} className="grid2">
+        <div style={{gridColumn:"1/-1"}}><Fi label="Descricao" value={nd} onChange={e=>setNd(e.target.value)} placeholder="Ex: OLX, Nubank..."/></div>
+        <Se label="Categoria" value={nc} onChange={e=>setNc(e.target.value)}>{CC.map(c=><option key={c}>{c}</option>)}</Se>
+        <Fi label="Valor R$" type="number" value={nv} onChange={e=>setNv(e.target.value)} inputMode="decimal"/>
+        <Fi label="Vencimento" type="date" value={nvn} onChange={e=>setNvn(e.target.value)}/>
+        <Fi label="Data Pagamento" type="date" value={np} onChange={e=>setNp(e.target.value)}/>
+        <label style={{display:"flex",alignItems:"center",gap:10,fontSize:14,cursor:"pointer",gridColumn:"1/-1",padding:"8px 0"}}><input type="checkbox" checked={nf} onChange={e=>setNf(e.target.checked)} style={{width:20,height:20,accentColor:"#c62828"}}/>Conta fixa (repete todo mes)</label>
+      </div>
+      <Btn onClick={add} label="Adicionar conta" full/>
+    </div>)}
+
+    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Todas",...CC].map(c=>(<button key={c} onClick={()=>setCa(c)} style={{padding:"7px 14px",border:"1.5px solid",borderColor:ca===c?(CR[c]||"#c62828"):"#ddd",borderRadius:20,background:ca===c?(CR[c]||"#c62828"):"#fff",color:ca===c?"#fff":"#555",fontSize:13,fontWeight:600,cursor:"pointer"}}>{c}</button>))}</div>
+
+    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}>
+      <p style={{margin:0,padding:"12px 16px",fontWeight:700,fontSize:14,borderBottom:"1px solid #eee",textTransform:"capitalize"}}>{mesNome(mesSel)} — {fl.length} conta{fl.length!==1?"s":""}</p>
+      {fl.length===0&&<p style={{padding:20,color:"#aaa",fontSize:14,textAlign:"center"}}>Nenhuma conta neste mes.</p>}
+      {fl.map(c=>{const dv=diasAteVencer(c);const prox=dv!==null&&dv>=0&&dv<=7;return(<div key={c.id} style={{padding:"14px 16px",borderBottom:"1px solid #f5f5f5",background:c.pago?"#f9fdf9":prox?"#fff8e1":c.vencimento&&c.vencimento<=hoje?"#fff3e0":"#fff"}}>
+        <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+          <button onClick={()=>tg(c.id)} style={{width:26,height:26,borderRadius:"50%",border:"2.5px solid "+(c.pago?"#43a047":c.vencimento&&c.vencimento<=hoje?"#e53935":prox?"#ffa000":"#ddd"),background:c.pago?"#43a047":"#fff",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:14,fontWeight:700}}>{c.pago?"✓":""}</button>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+              <div style={{flex:1}}>
+                <span style={{fontWeight:700,fontSize:15,color:c.pago?"#aaa":"#1a1a1a",textDecoration:c.pago?"line-through":"none"}}>{c.desc}</span>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:4}}>
+                  {c.fixa&&<span style={{fontSize:10,background:"#e3f2fd",color:"#1565c0",padding:"2px 7px",borderRadius:10,fontWeight:700}}>FIXA</span>}
+                  {c.vencimento&&c.vencimento<=hoje&&!c.pago&&<span style={{fontSize:10,background:"#fce4ec",color:"#b71c1c",padding:"2px 7px",borderRadius:10,fontWeight:700}}>VENCIDA</span>}
+                  {prox&&!c.pago&&<span style={{fontSize:10,background:"#fff8e1",color:"#e65100",padding:"2px 7px",borderRadius:10,fontWeight:700}}>{dv===0?"HOJE":dv===1?"AMANHA":dv+"D"}</span>}
+                  <span style={{fontSize:10,background:(CR[c.cat]||"#888")+"22",color:CR[c.cat]||"#333",padding:"2px 7px",borderRadius:10,fontWeight:700}}>{c.cat}</span>
+                </div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}><span style={{fontWeight:800,fontSize:16,color:c.pago?"#2e7d32":"#c62828"}}>{fm(c.val)}</span><span style={{display:"block",fontSize:12,color:"#888",fontWeight:600,marginTop:2}}>{totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"}</span></div>
+            </div>
+            <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap"}}>
+              <div style={{display:"flex",flexDirection:"column",gap:3}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>VENCIMENTO</span><input type="date" value={c.vencimento||""} onChange={e=>up(c.id,"vencimento",e.target.value)} style={{border:"1px solid #eee",borderRadius:8,padding:"5px 8px",fontSize:13,outline:"none"}}/></div>
+              <div style={{display:"flex",flexDirection:"column",gap:3}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>VALOR</span><input type="number" value={c.val} onChange={e=>up(c.id,"val",Number(e.target.value))} style={{border:"1px solid #eee",borderRadius:8,padding:"5px 8px",fontSize:13,outline:"none",width:100}}/></div>
+              {c.pago&&<div style={{display:"flex",flexDirection:"column",gap:3}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>PAGO EM</span><input type="date" value={c.dataPgto||""} onChange={e=>up(c.id,"dataPgto",e.target.value)} style={{border:"1px solid #eee",borderRadius:8,padding:"5px 8px",fontSize:13,outline:"none"}}/></div>}
+            </div>
+          </div>
+          <button onClick={()=>rm(c.id)} style={{border:"none",background:"none",color:"#ddd",cursor:"pointer",fontSize:20,padding:"4px",flexShrink:0}}>✕</button>
+        </div>
+      </div>);})}
+    </div>
   </div>);}function Fn({motos,financeiro,onAdd,onRem,usuario}){
   const isMaster=usuario?.role==="master";
   const[desc,setDesc]=useState("");const[val,setVal]=useState("");const[tipo,setTipo]=useState("Saida");const[data,setData]=useState(td());const[cat,setCat]=useState("Outros");
@@ -654,83 +806,6 @@ function Ia({motos}){
         <p style={{margin:0,fontSize:14,color:"#333",lineHeight:1.6}}>{s.sugestao}</p>
       </div>))}
     </div>)}
-  </div>);}function Co({contas,onSave}){
-  const[ca,setCa]=useState("Todas");
-  const[nd,setNd]=useState("");const[nc,setNc]=useState(CC[0]);const[nv,setNv]=useState("");
-  const[nvn,setNvn]=useState("");const[np,setNp]=useState("");const[nf,setNf]=useState(false);
-  const[verDetalhes,setVerDetalhes]=useState(false);
-  const add=()=>{if(!nd||!nv)return;onSave([...contas,{id:uid(),desc:nd,cat:nc,val:Number(nv),vencimento:nvn,dataPgto:np,pago:!!np,fixa:nf}]);setNd("");setNv("");setNvn("");setNp("");setNf(false);};
-  const tg=(id)=>onSave(contas.map(c=>c.id===id?{...c,pago:!c.pago,dataPgto:!c.pago?td():""}:c));
-  const rm=(id)=>{if(!confirm("Remover?"))return;onSave(contas.filter(c=>c.id!==id));};
-  const up=(id,k,v)=>onSave(contas.map(c=>c.id===id?{...c,[k]:v}:c));
-  const fl=ca==="Todas"?contas:contas.filter(c=>c.cat===ca);
-  const totalGeral=contas.reduce((s,c)=>s+Number(c.val),0);
-  const tp=contas.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);
-  const tpn=contas.filter(c=>!c.pago).reduce((s,c)=>s+Number(c.val),0);
-  const hoje=td();
-  const venc=contas.filter(c=>!c.pago&&c.vencimento&&c.vencimento<=hoje);
-  const venc7=contas.filter(c=>{const d=diasAteVencer(c);return d!==null&&d>=0&&d<=7;});
-  const pc=CC.map(ct=>{const itens=contas.filter(c=>c.cat===ct);const tot=itens.reduce((s,c)=>s+Number(c.val),0);const pg=itens.filter(c=>c.pago).reduce((s,c)=>s+Number(c.val),0);const pct=totalGeral>0?(tot/totalGeral*100):0;return{ct,tot,pg,pct,itens};}).filter(x=>x.tot>0).sort((a,b)=>b.tot-a.tot);
-  const mx=Math.max(...pc.map(x=>x.tot),1);
-  const expExcel=()=>{exportExcelDireto(contas.map(c=>({"Descricao":c.desc,"Categoria":c.cat,"Valor":Number(c.val),"Vencimento":fd(c.vencimento),"Pago":c.pago?"Sim":"Nao","Data Pgto":fd(c.dataPgto),"Fixa":c.fixa?"Sim":"Nao","% Total":totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"})),"PTK_Contas");};
-  const expPDF=()=>{const rowsCat=pc.map(x=>`<tr><td><b>${x.ct}</b></td><td>${fm(x.tot)}</td><td><b>${fp(x.pct)}</b></td><td>${fm(x.pg)}</td><td style="color:#b71c1c">${fm(x.tot-x.pg)}</td></tr>`).join("");const rowsItens=contas.map(c=>`<tr><td>${c.desc}</td><td>${c.cat}</td><td>${fm(c.val)}</td><td>${totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"}</td><td style="color:${c.pago?"#2e7d32":"#b71c1c"}">${c.pago?"Pago":"Pendente"}</td><td>${fd(c.vencimento)}</td></tr>`).join("");exportPDF("Contas PTK",`<h1>Contas</h1><p>Total:${fm(totalGeral)} | Pago:${fm(tp)} | Pendente:${fm(tpn)}</p><br><h2 style="color:#c62828;font-size:14px">Por Categoria</h2><table><thead><tr><th>Categoria</th><th>Total</th><th>% Total</th><th>Pago</th><th>Pendente</th></tr></thead><tbody>${rowsCat}</tbody></table><br><h2 style="color:#c62828;font-size:14px">Por Conta</h2><table><thead><tr><th>Descricao</th><th>Categoria</th><th>Valor</th><th>% Total</th><th>Status</th><th>Vencimento</th></tr></thead><tbody>${rowsItens}</tbody></table>`);};
-  return(<div style={{display:"flex",flexDirection:"column",gap:14}}>
-    {venc.length>0&&(<div style={{background:"#fce4ec",border:"1.5px solid #e53935",borderRadius:14,padding:14}}><p style={{margin:"0 0 8px",fontWeight:700,fontSize:14,color:"#b71c1c"}}>🔴 {venc.length} conta{venc.length>1?"s":""} vencida{venc.length>1?"s":""}!</p>{venc.map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #ffcdd2"}}><span>{c.desc}</span><span style={{fontWeight:700,color:"#b71c1c"}}>{fm(c.val)}</span></div>))}</div>)}
-    {venc7.length>0&&(<div style={{background:"#fff8e1",border:"1.5px solid #ffa000",borderRadius:14,padding:14}}><p style={{margin:"0 0 8px",fontWeight:700,fontSize:14,color:"#e65100"}}>⚠️ Vencendo em ate 7 dias</p>{venc7.map(c=>{const d=diasAteVencer(c);return(<div key={c.id} style={{display:"flex",justifyContent:"space-between",fontSize:13,padding:"4px 0",borderBottom:"1px solid #ffe082"}}><span>{c.desc}</span><span style={{fontWeight:700,color:"#e65100"}}>{d===0?"Hoje":d===1?"Amanha":d+"d"} · {fm(c.val)}</span></div>);})}</div>)}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}} className="grid3">
-      {[["Total",totalGeral,"#37474f"],["Pago",tp,"#2e7d32"],["Pendente",tpn,"#b71c1c"]].map(([l,v,c])=>(<div key={l} style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:14}}><p style={{margin:0,fontSize:11,fontWeight:700,color:"#888",textTransform:"uppercase"}}>{l}</p><p style={{margin:"6px 0 0",fontSize:18,fontWeight:900,color:c}}>{fm(v)}</p></div>))}
-    </div>
-    <div style={{display:"flex",gap:8}}><BtnExp onClick={expExcel} label="📊 Excel" color="#1b5e20"/><BtnExp onClick={expPDF} label="📄 PDF" color="#b71c1c"/></div>
-    {pc.length>0&&(<div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><p style={{margin:0,fontWeight:700,fontSize:14}}>Gastos por categoria</p><button onClick={()=>setVerDetalhes(!verDetalhes)} style={{padding:"6px 12px",border:"1.5px solid #ddd",borderRadius:10,background:"#fff",cursor:"pointer",fontSize:13,fontWeight:600,color:"#555"}}>{verDetalhes?"Ocultar":"Ver contas"}</button></div>
-      {pc.map(x=>(<div key={x.ct} style={{marginBottom:16}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}><span style={{fontSize:14,fontWeight:700,color:CR[x.ct]||"#333"}}>{x.ct}</span><div style={{textAlign:"right"}}><span style={{fontSize:14,fontWeight:800}}>{fm(x.tot)}</span><span style={{fontSize:12,fontWeight:700,color:"#666",marginLeft:8,background:"#f5f5f5",padding:"3px 8px",borderRadius:10}}>{fp(x.pct)}</span></div></div>
-        <div style={{background:"#f0f0f0",borderRadius:20,height:12,overflow:"hidden",position:"relative",marginBottom:4}}><div style={{width:fp(x.tot/mx*100),height:"100%",background:CR[x.ct]||"#888",borderRadius:20,opacity:.25,position:"absolute"}}/><div style={{width:fp(x.pg/mx*100),height:"100%",background:CR[x.ct]||"#888",borderRadius:20,position:"absolute"}}/></div>
-        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{color:"#aaa"}}>Pago: {fm(x.pg)}</span><span style={{color:"#c62828"}}>Pendente: {fm(x.tot-x.pg)}</span></div>
-        {verDetalhes&&x.itens.length>0&&(<div style={{marginTop:8,paddingLeft:12,borderLeft:"3px solid "+(CR[x.ct]||"#ddd")}}>{x.itens.map(c=>(<div key={c.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f5f5f5",fontSize:13}}><span style={{color:c.pago?"#aaa":"#333",textDecoration:c.pago?"line-through":"none",flex:1,marginRight:8}}>{c.desc}</span><div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}><span style={{color:"#aaa",fontSize:12}}>{totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"}</span><span style={{fontWeight:700,color:c.pago?"#2e7d32":"#c62828"}}>{fm(c.val)}</span></div></div>))}</div>)}
-      </div>))}
-    </div>)}
-    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>+ Nova conta</p>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}} className="grid2">
-        <div style={{gridColumn:"1/-1"}}><Fi label="Descricao" value={nd} onChange={e=>setNd(e.target.value)} placeholder="Ex: OLX, Nubank..."/></div>
-        <Se label="Categoria" value={nc} onChange={e=>setNc(e.target.value)}>{CC.map(c=><option key={c}>{c}</option>)}</Se>
-        <Fi label="Valor R$" type="number" value={nv} onChange={e=>setNv(e.target.value)} inputMode="decimal"/>
-        <Fi label="Vencimento" type="date" value={nvn} onChange={e=>setNvn(e.target.value)}/>
-        <Fi label="Data Pagamento" type="date" value={np} onChange={e=>setNp(e.target.value)}/>
-        <label style={{display:"flex",alignItems:"center",gap:10,fontSize:14,cursor:"pointer",gridColumn:"1/-1",padding:"8px 0"}}><input type="checkbox" checked={nf} onChange={e=>setNf(e.target.checked)} style={{width:20,height:20,accentColor:"#c62828"}}/>Conta fixa</label>
-      </div>
-      <Btn onClick={add} label="Adicionar conta" full/>
-    </div>
-    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Todas",...CC].map(c=>(<button key={c} onClick={()=>setCa(c)} style={{padding:"7px 14px",border:"1.5px solid",borderColor:ca===c?(CR[c]||"#c62828"):"#ddd",borderRadius:20,background:ca===c?(CR[c]||"#c62828"):"#fff",color:ca===c?"#fff":"#555",fontSize:13,fontWeight:600,cursor:"pointer"}}>{c}</button>))}</div>
-    <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,overflow:"hidden"}}>
-      {fl.length===0&&<p style={{padding:20,color:"#aaa",fontSize:14,textAlign:"center"}}>Nenhuma conta nesta categoria.</p>}
-      {fl.map(c=>{const dv=diasAteVencer(c);const prox=dv!==null&&dv>=0&&dv<=7;return(<div key={c.id} style={{padding:"14px 16px",borderBottom:"1px solid #f5f5f5",background:c.pago?"#f9fdf9":prox?"#fff8e1":c.vencimento&&c.vencimento<=hoje?"#fff3e0":"#fff"}}>
-        <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-          <button onClick={()=>tg(c.id)} style={{width:26,height:26,borderRadius:"50%",border:"2.5px solid "+(c.pago?"#43a047":c.vencimento&&c.vencimento<=hoje?"#e53935":prox?"#ffa000":"#ddd"),background:c.pago?"#43a047":"#fff",cursor:"pointer",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:14,fontWeight:700}}>{c.pago?"✓":""}</button>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-              <div style={{flex:1}}>
-                <span style={{fontWeight:700,fontSize:15,color:c.pago?"#aaa":"#1a1a1a",textDecoration:c.pago?"line-through":"none"}}>{c.desc}</span>
-                <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:4}}>
-                  {c.fixa&&<span style={{fontSize:10,background:"#e3f2fd",color:"#1565c0",padding:"2px 7px",borderRadius:10,fontWeight:700}}>FIXA</span>}
-                  {c.vencimento&&c.vencimento<=hoje&&!c.pago&&<span style={{fontSize:10,background:"#fce4ec",color:"#b71c1c",padding:"2px 7px",borderRadius:10,fontWeight:700}}>VENCIDA</span>}
-                  {prox&&!c.pago&&<span style={{fontSize:10,background:"#fff8e1",color:"#e65100",padding:"2px 7px",borderRadius:10,fontWeight:700}}>{dv===0?"HOJE":dv===1?"AMANHA":dv+"D"}</span>}
-                  <span style={{fontSize:10,background:(CR[c.cat]||"#888")+"22",color:CR[c.cat]||"#333",padding:"2px 7px",borderRadius:10,fontWeight:700}}>{c.cat}</span>
-                </div>
-              </div>
-              <div style={{textAlign:"right",flexShrink:0}}><span style={{fontWeight:800,fontSize:16,color:c.pago?"#2e7d32":"#c62828"}}>{fm(c.val)}</span><span style={{display:"block",fontSize:12,color:"#888",fontWeight:600,marginTop:2}}>{totalGeral>0?fp(Number(c.val)/totalGeral*100):"—"}</span></div>
-            </div>
-            <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap"}}>
-              <div style={{display:"flex",flexDirection:"column",gap:3}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>VENCIMENTO</span><input type="date" value={c.vencimento||""} onChange={e=>up(c.id,"vencimento",e.target.value)} style={{border:"1px solid #eee",borderRadius:8,padding:"5px 8px",fontSize:13,outline:"none"}}/></div>
-              <div style={{display:"flex",flexDirection:"column",gap:3}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>VALOR</span><input type="number" value={c.val} onChange={e=>up(c.id,"val",Number(e.target.value))} style={{border:"1px solid #eee",borderRadius:8,padding:"5px 8px",fontSize:13,outline:"none",width:100}}/></div>
-              {c.pago&&<div style={{display:"flex",flexDirection:"column",gap:3}}><span style={{fontSize:10,color:"#aaa",fontWeight:700}}>PAGO EM</span><input type="date" value={c.dataPgto||""} onChange={e=>up(c.id,"dataPgto",e.target.value)} style={{border:"1px solid #eee",borderRadius:8,padding:"5px 8px",fontSize:13,outline:"none"}}/></div>}
-            </div>
-          </div>
-          <button onClick={()=>rm(c.id)} style={{border:"none",background:"none",color:"#ddd",cursor:"pointer",fontSize:20,padding:"4px",flexShrink:0}}>✕</button>
-        </div>
-      </div>);})}
-    </div>
   </div>);}
 function App(){
   const[usuario,setUsuario]=useState(null);
@@ -747,8 +822,10 @@ function App(){
   const delMoto=async id=>{if(!confirm("Remover esta moto?"))return;await sm(motos.filter(m=>m.id!==id));setTela("estoque");setEdit(null);};
   const totalCustoEstoque=motos.filter(m=>m.status!=="Vendida").reduce((s,m)=>s+custoTotal(m),0);
   const mf=motos.filter(m=>{const q=busca.toLowerCase();const ok=!q||[m.marca,m.modelo,m.placa,m.vendedorNome,m.compradorNome].some(v=>(v||"").toLowerCase().includes(q));return ok&&(fst==="Todos"||m.status===fst);});
-  const contasVencidas=contas.filter(c=>!c.pago&&c.vencimento&&c.vencimento<td());
-  const contasVencendo=contas.filter(c=>{const d=diasAteVencer(c);return d!==null&&d>=0&&d<=7;});
+  const mes=mesAtual();
+  const contasMesAtual=contas.filter(c=>c.mes===mes);
+  const contasVencidas=contasMesAtual.filter(c=>!c.pago&&c.vencimento&&c.vencimento<td());
+  const contasVencendo=contasMesAtual.filter(c=>{const d=diasAteVencer(c);return d!==null&&d>=0&&d<=7;});
   const badgeContas=isMaster?(contasVencidas.length+contasVencendo.length):0;
   const urgentesMotos=motos.filter(m=>semaforo(m)==="red").length;
   const NV=[
