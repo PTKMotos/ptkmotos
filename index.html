@@ -511,7 +511,7 @@ function Db({motos,contas,usuario,onVerMoto}){
       </div>
     </div>
     <div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}>
-      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>💰 Resultado de vendas</p>
+      <p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>💰 💰 Resumo Financeiro</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}} className="grid3"><Ca label="💰 Caixa" value={fm(totalVV-totalCV)} color={(totalVV-totalCV)>=0?"#2e7d32":"#b71c1c"}/><Ca label="📦 Estoque Custo" value={fm(totalCE)} color="#37474f"/><Ca label="📈 Lucro do Mes" value={fm(motos.filter(m=>m.status==="Vendida"&&m.dataVenda&&m.dataVenda.startsWith(mes)).reduce((s,m)=>s+margemReal(m),0))} color="#1565c0"/></div></div><div style={{background:"#fff",border:"1.5px solid #eee",borderRadius:14,padding:16}}><p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>💰 Resultado de vendas</p>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         <Ca label="Total vendido" value={fm(totalVV)} color="#1b5e20"/>
         <Ca label="Custo vendidas" value={fm(totalCV)} color="#37474f"/>
