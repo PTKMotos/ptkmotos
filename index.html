@@ -28,7 +28,7 @@ const BP="6a49953cf5f4af5e2960a766";
 const BE="6a499571f5f4af5e2960a7df";
 const BL="6a4995a4f5f4af5e2960a862";
 const HD={"Content-Type":"application/json","X-Master-Key":MK,"X-Bin-Private":"false"};
-const USUARIOS={"Loja@123":{nome:"Wellington",role:"master"},"Impalacar@123":{nome:"Patrick",role:"vendas"}};
+const USUARIOS={"Loja@123":{nome:"Wellington",role:"master"},"Impalacar@123":{nome:"Patrick",role:"master"}};
 const EMAILS=["pwmotosbrasilltda@gmail.com","ptkbandeirantes@gmail.com","wellimreis@hotmail.com"];
 async function rb(id){const r=await fetch("https://api.jsonbin.io/v3/b/"+id+"/latest",{headers:{"X-Master-Key":MK}});const d=await r.json();const v=d.record;return Array.isArray(v)?v.filter(x=>x&&Object.keys(x).length>0):[];}
 async function wb(id,data){await fetch("https://api.jsonbin.io/v3/b/"+id,{method:"PUT",headers:HD,body:JSON.stringify(data)});}
