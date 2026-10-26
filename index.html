@@ -1081,6 +1081,7 @@ function Leads({leads,onSave,pessoas}){
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         {["dashboard","estoque"].includes(tela)&&<button onClick={()=>{setEdit(null);setTela("nova");}} style={{background:"#fff",color:"#c62828",border:"none",borderRadius:10,padding:"7px 14px",fontWeight:700,cursor:"pointer",fontSize:13}}>+ Moto</button>}
         {["nova","editar"].includes(tela)&&<button onClick={()=>{setTela("estoque");setEdit(null);}} style={{background:"rgba(255,255,255,0.2)",color:"#fff",border:"none",borderRadius:10,padding:"7px 14px",cursor:"pointer",fontSize:13,fontWeight:600}}>Voltar</button>}
+        {isMaster&&<a href="financeiro.html" style={{background:"#fff",color:"#2e7d32",borderRadius:10,padding:"7px 12px",fontWeight:700,fontSize:13,textDecoration:"none"}}>💵 Caixa</a>}
         <button onClick={()=>setUsuario(null)} style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:10,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:600}}>Sair</button>
       </div>
     </div>
