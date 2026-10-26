@@ -250,22 +250,94 @@ function Metas({motos,contas,isMaster}){
       <div style={{padding:"10px 14px",background:"#f9f9f9",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between"}}><span>Total extras</span><span style={{color:"#c62828"}}>{fm(tot)}</span></div>
     </div>)}
   </div>);}
-function GerarLegenda({moto}){
-  const[loading,setLoading]=useState(false);const[legenda,setLegenda]=useState("");const[copiado,setCopiado]=useState(false);
-  const gerar=async()=>{
-    setLoading(true);setLegenda("");
-    const prompt="Crie uma legenda para Instagram para venda desta moto usada na loja PTK Motos em Sao Paulo.\n\nMOTO:\n- "+moto.marca+" "+moto.modelo+" "+moto.ano+"\n- Cor: "+(moto.cor||"nao informada")+"\n- KM: "+(moto.km||"nao informado")+"\n- Placa: "+moto.placa+"\n- Preco: "+fm(moto.precoVenda||0)+"\n\nA legenda deve ser animada, ter emojis, destacar o preco, call to action WhatsApp (11) 94167-2110 Patrick, mencionar PTK Motos Lapa SP, hashtags no final, max 300 palavras.";
-    try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt}]})});const data=await res.json();setLegenda(data.content?.map(x=>x.text||"").join("").trim());}
-    catch(e){setLegenda("Erro ao gerar. Tente novamente.");}
-    setLoading(false);};
-  const copiar=()=>{navigator.clipboard.writeText(legenda).then(()=>{setCopiado(true);setTimeout(()=>setCopiado(false),2000);});};
-  return(<div style={{background:"#f3e5f5",border:"1.5px solid #ce93d8",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:10}}>
-    <p style={{margin:0,fontWeight:700,color:"#6a1b9a",fontSize:13}}>📱 LEGENDA INSTAGRAM</p>
-    <Btn onClick={gerar} label={loading?"Gerando...":"✨ Gerar Legenda"} color="#6a1b9a" full disabled={loading}/>
-    {legenda&&(<div>
-      <div style={{background:"#fff",borderRadius:10,padding:14,fontSize:13,lineHeight:1.7,color:"#333",whiteSpace:"pre-wrap",border:"1px solid #e1bee7",marginBottom:8}}>{legenda}</div>
-      <button onClick={copiar} style={{width:"100%",padding:"10px",border:"none",borderRadius:10,background:copiado?"#2e7d32":"#6a1b9a",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14}}>{copiado?"✓ Copiado!":"📋 Copiar legenda"}</button>
-    </div>)}
+function PostCondicao({f,st}){
+  const BANCOS=["Santander","Omni","Pan"];
+  const linhas=f.postParcelas&&f.postParcelas.length?f.postParcelas:[{n:"48",v:""},{n:"",v:""},{n:"",v:""}];
+  const setLinha=(i,k,v)=>st("postParcelas",linhas.map((l,j)=>j===i?{...l,[k]:v}:l));
+  const[copiado,setCopiado]=useState(false);const[foto,setFoto]=useState(null);const[img,setImg]=useState(null);const[gerando,setGerando]=useState(false);
+  const validas=linhas.filter(l=>Number(l.n)>0&&Number(l.v)>0).sort((a,b)=>Number(b.n)-Number(a.n));
+  const ent=Number(f.postEntrada||0);
+  const fi=v=>"R$ "+Number(v).toLocaleString("pt-BR",{maximumFractionDigits:0});
+  const bancos=f.postBancos||BANCOS;
+  const titulo=[f.marca,f.modelo,f.ano].filter(Boolean).join(" ").toUpperCase();
+  const km=f.km?(/^\d+$/.test(String(f.km))?Number(f.km).toLocaleString("pt-BR"):f.km)+" km":"";
+  const det=[km,f.cor||""].filter(Boolean).join(" · ");
+  const limpa=t=>(t||"").toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"");
+  const tags=["ptkmotos","motos","motosp",limpa(f.marca),limpa(f.marca)+limpa(f.modelo),"motofinanciada","financiamentodemoto","motoseminova","saopaulo"].filter((t,i,a)=>t&&a.indexOf(t)===i).map(t=>"#"+t).join(" ");
+  const L=["🔥 "+titulo+" 🔥",""];
+  L.push(ent>0?"✅ ENTRADA DE "+fi(ent):"✅ SEM ENTRADA");
+  validas.forEach(l=>L.push("💰 "+l.n+"x de "+fm(l.v)));
+  if(f.postCartao)L.push("💳 Ou em até "+(f.postCartaoN||"18")+"x no cartão"+(Number(f.postCartaoV)>0?" de "+fm(f.postCartaoV):""));
+  if(f.postTroca!==false)L.push("🔁 Aceitamos sua moto na troca");
+  L.push("");
+  if(det)L.push("📍 "+det);
+  if(f.postDestaque)L.push("⭐ "+f.postDestaque);
+  if(det||f.postDestaque)L.push("");
+  if(bancos.length)L.push("🏦 Financiamento: "+bancos.join(", "));
+  L.push("📲 Chame no direct ou no WhatsApp (11) 94167-2110 - Patrick");
+  L.push("📍 PTK Motos · São Paulo/SP","","*Condições sujeitas a análise de crédito.","",tags);
+  const texto=L.join("\n");
+  const copiar=()=>{const ok=()=>{setCopiado(true);setTimeout(()=>setCopiado(false),2000);};
+    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(texto).then(ok);return;}
+    const t=document.createElement("textarea");t.value=texto;t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);ok();};
+  const escolherFoto=e=>{const a=e.target.files[0];if(!a)return;const r=new FileReader();r.onload=()=>{setFoto(r.result);setImg(null);};r.readAsDataURL(a);};
+  const gerarImagem=async()=>{setGerando(true);try{
+    const W=1080,H=1350;const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
+    const fonte=(s,w)=>{x.font=w+" "+s+"px system-ui,-apple-system,sans-serif";};
+    const caber=(t,max,s,w)=>{fonte(s,w);while(x.measureText(t).width>max&&s>24){s-=2;fonte(s,w);}};
+    x.fillStyle="#1a1a1a";x.fillRect(0,0,W,H);
+    if(foto){const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=foto;});const s=Math.max(W/im.width,H/im.height);const w=im.width*s,h=im.height*s;x.drawImage(im,(W-w)/2,(H-h)/2,w,h);}
+    const g=x.createLinearGradient(0,0,0,320);g.addColorStop(0,"rgba(0,0,0,0.8)");g.addColorStop(1,"rgba(0,0,0,0)");x.fillStyle=g;x.fillRect(0,0,W,320);
+    x.fillStyle="#fff";x.textAlign="left";caber(titulo,W-100,76,900);x.fillText(titulo,50,115);
+    fonte(34,700);x.fillStyle="rgba(255,255,255,0.9)";x.fillText(det?det+"  ·  PTK MOTOS":"PTK MOTOS · São Paulo",50,170);
+    const extras=validas.slice(1);const altura=300+(extras.length?70:0)+(f.postCartao?60:0);const topo=H-altura;
+    x.fillStyle="#c62828";x.fillRect(0,topo,W,altura);x.fillStyle="#ffd600";x.fillRect(0,topo,W,10);
+    x.fillStyle="#fff";x.textAlign="center";let y=topo+115;
+    const l1=ent>0?"ENTRADA "+fi(ent):"SEM ENTRADA";caber(l1,W-80,96,900);x.fillText(l1,W/2,y);y+=95;
+    if(validas[0]){const l2=(ent>0?"+ ":"")+validas[0].n+"x de "+fm(validas[0].v);caber(l2,W-80,70,800);x.fillText(l2,W/2,y);y+=70;}
+    if(extras.length){const l3=extras.map(l=>l.n+"x "+fm(l.v)).join("   ·   ");caber(l3,W-80,42,700);x.fillText(l3,W/2,y);y+=60;}
+    if(f.postCartao){const l4="ou até "+(f.postCartaoN||"18")+"x no cartão"+(Number(f.postCartaoV)>0?" de "+fm(f.postCartaoV):"");caber(l4,W-80,40,700);x.fillText(l4,W/2,y);y+=55;}
+    fonte(28,600);x.fillStyle="rgba(255,255,255,0.85)";x.fillText("@ptk.motos  ·  (11) 94167-2110  ·  Sujeito a análise de crédito",W/2,H-30);
+    setImg(c.toDataURL("image/jpeg",0.92));
+  }catch(e){alert("Nao foi possivel gerar a imagem.");}setGerando(false);};
+  const chk={display:"flex",alignItems:"center",gap:8,fontSize:14,fontWeight:600,color:"#444"};
+  const caixa={background:"#fff",border:"1.5px solid #eee",borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:10};
+  return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
+    <div style={{...caixa,background:"#fff8e1",border:"1.5px solid #ffcc80"}}>
+      <p style={{margin:0,fontWeight:700,color:"#e65100",fontSize:13}}>💰 CONDIÇÃO DO POST</p>
+      <Fi label="Entrada R$ (vazio = sem entrada)" type="number" value={f.postEntrada||""} onChange={e=>st("postEntrada",e.target.value)} inputMode="decimal" placeholder="3000"/>
+      {linhas.map((l,i)=>(<div key={i} style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8}}>
+        <Fi label={i===0?"Parcelas":"Parcelas (opcional)"} type="number" value={l.n} onChange={e=>setLinha(i,"n",e.target.value)} inputMode="numeric" placeholder={["48","36","24"][i]}/>
+        <Fi label="Valor da parcela R$" type="number" value={l.v} onChange={e=>setLinha(i,"v",e.target.value)} inputMode="decimal" placeholder="489"/>
+      </div>))}
+      <label style={chk}><input type="checkbox" checked={!!f.postCartao} onChange={e=>st("postCartao",e.target.checked)}/>💳 Cartão de crédito</label>
+      {f.postCartao&&(<div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8}}>
+        <Fi label="Até quantas vezes" type="number" value={f.postCartaoN||"18"} onChange={e=>st("postCartaoN",e.target.value)} inputMode="numeric"/>
+        <Fi label="Valor da parcela R$ (opcional)" type="number" value={f.postCartaoV||""} onChange={e=>st("postCartaoV",e.target.value)} inputMode="decimal"/>
+      </div>)}
+      <label style={chk}><input type="checkbox" checked={f.postTroca!==false} onChange={e=>st("postTroca",e.target.checked)}/>🔁 Aceita troca</label>
+      <div><p style={{...lb,margin:"0 0 6px"}}>Bancos no post</p><div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+        {BANCOS.map(b=>(<label key={b} style={chk}><input type="checkbox" checked={bancos.includes(b)} onChange={e=>st("postBancos",e.target.checked?[...bancos,b]:bancos.filter(z=>z!==b))}/>{b}</label>))}
+      </div></div>
+      <Fi label="Destaque (opcional)" value={f.postDestaque||""} onChange={e=>st("postDestaque",e.target.value)} placeholder="Ex: Único dono, revisada, pneus novos"/>
+    </div>
+    <div style={caixa}>
+      <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>📝 LEGENDA</p>
+      <div style={{background:"#fafafa",borderRadius:10,padding:12,fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap",border:"1px solid #eee"}}>{texto}</div>
+      <button onClick={copiar} style={{padding:"11px",border:"none",borderRadius:10,background:copiado?"#2e7d32":"#c62828",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14}}>{copiado?"✓ Copiado!":"📋 Copiar legenda"}</button>
+    </div>
+    <div style={caixa}>
+      <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>🖼️ IMAGEM DO POST</p>
+      <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,border:"2px dashed #ddd",borderRadius:12,padding:"14px",cursor:"pointer",background:"#fafafa",color:"#666",fontSize:14,fontWeight:600}}>
+        📷 {foto?"Trocar foto":"Escolher foto da moto"}<input type="file" accept="image/*" onChange={escolherFoto} style={{display:"none"}}/></label>
+      <Btn onClick={gerarImagem} label={gerando?"Gerando...":"🖼️ Gerar imagem com a condição"} full disabled={gerando}/>
+      {img&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>
+        <img src={img} alt="Post" style={{width:"100%",borderRadius:10,border:"1px solid #eee"}}/>
+        <a href={img} download={"post_"+(f.placa||"moto")+".jpg"} style={{textAlign:"center",padding:"11px",borderRadius:10,background:"#2e7d32",color:"#fff",fontWeight:700,textDecoration:"none",fontSize:14}}>⬇️ Baixar imagem</a>
+        <p style={{margin:0,fontSize:12,color:"#888",textAlign:"center"}}>No celular, você também pode segurar o dedo na imagem para salvar.</p>
+      </div>)}
+    </div>
+    <p style={{margin:0,fontSize:12,color:"#888"}}>As condições ficam guardadas nesta moto quando você clicar em Salvar Moto.</p>
   </div>);}
 function Mf({initial,onSave,onCancel,usuario,pessoas}){
   const isMaster=usuario?.role==="master";
@@ -374,7 +446,7 @@ function Mf({initial,onSave,onCancel,usuario,pessoas}){
         <a href={"https://www.olx.com.br/motos-e-acessorios/motos?q="+encodeURIComponent((f.marca+" "+f.modelo).trim())} target="_blank" style={{flex:1,padding:"10px",background:"#e65100",color:"#fff",borderRadius:10,fontSize:13,fontWeight:700,textDecoration:"none",textAlign:"center"}}>🔍 OLX</a>
         <a href="https://www.instagram.com/ptk.motos" target="_blank" style={{flex:1,padding:"10px",background:"linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",color:"#fff",borderRadius:10,fontSize:13,fontWeight:700,textDecoration:"none",textAlign:"center"}}>📸 Instagram</a>
       </div>
-      {f.marca&&f.modelo?<GerarLegenda moto={f}/>:<div style={{background:"#f5f5f5",borderRadius:12,padding:20,textAlign:"center",color:"#aaa"}}><p>Preencha marca e modelo para gerar a legenda</p></div>}
+      {f.marca&&f.modelo?<PostCondicao f={f} st={st}/>:<div style={{background:"#f5f5f5",borderRadius:12,padding:20,textAlign:"center",color:"#aaa"}}><p>Preencha marca e modelo para montar o post</p></div>}
     </div>)}
     {tab==="venda"&&f.status==="Vendida"&&isMaster&&(<div style={{display:"flex",flexDirection:"column",gap:16}}>
       <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>DADOS DO COMPRADOR</p>
