@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f7f7f7;min-height:100vh;padding-bottom:70px}
@@ -19,11 +20,9 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 <div id="root"></div>
 <script type="text/babel">
 const{useState,useEffect}=React;
-const MK="$2a$10$L4xwan84Zj7itaLh2cZ.jOsmp0rhnIOb1bbX50QA1PcY3sngbuzP.";
-const BX="6ade8dc1ac6210605a51c1eb";
-const USUARIOS={"Loja@123":{nome:"Wellington",role:"master"},"Impalacar@123":{nome:"Patrick",role:"master"},"Vendedor1":{nome:"Vendedor 1",role:"vendas"}};
-async function ler(){const r=await fetch("https://api.jsonbin.io/v3/b/"+BX+"/latest",{headers:{"X-Master-Key":MK}});if(!r.ok)throw new Error("ler");const d=await r.json();const v=d.record||{};return{contas:v.contas||[],lancamentos:v.lancamentos||[],despesas:v.despesas||[]};}
-async function gravar(dados){const r=await fetch("https://api.jsonbin.io/v3/b/"+BX,{method:"PUT",headers:{"Content-Type":"application/json","X-Master-Key":MK},body:JSON.stringify(dados)});if(!r.ok)throw new Error("gravar");}
+const SB=supabase.createClient("https://mvfuquomyxbtdaywrhmy.supabase.co","sb_publishable_nt9279fkfL4mJxp8v7xfyg__phGzWkP");
+async function ler(){const{data,error}=await SB.from("colecoes").select("dados").eq("nome","caixa").maybeSingle();if(error)throw error;const v=data?.dados||{};return{contas:v.contas||[],lancamentos:v.lancamentos||[],despesas:v.despesas||[]};}
+async function gravar(dados){const{error}=await SB.from("colecoes").upsert({nome:"caixa",dados});if(error)throw error;}
 const fm=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const fd=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
 const td=()=>{const n=new Date();return n.getFullYear()+"-"+String(n.getMonth()+1).padStart(2,"0")+"-"+String(n.getDate()).padStart(2,"0");};
@@ -42,18 +41,19 @@ const Btn=({onClick,label,color,full,disabled})=>(<button onClick={onClick} disa
 const Tit=({children})=>(<p style={{margin:"0 0 12px",fontWeight:700,fontSize:14}}>{children}</p>);
 
 function Login({onLogin}){
-  const[senha,setSenha]=useState("");const[erro,setErro]=useState("");const[show,setShow]=useState(false);
-  const tentar=()=>{const u=USUARIOS[senha];if(!u){setErro("Senha incorreta.");return;}if(u.role!=="master"){setErro("Acesso apenas para master.");return;}onLogin(u);};
+  const[email,setEmail]=useState("");const[senha,setSenha]=useState("");const[erro,setErro]=useState("");const[show,setShow]=useState(false);const[ent,setEnt]=useState(false);
+  const tentar=async()=>{if(!email||!senha){setErro("Informe e-mail e senha.");return;}setEnt(true);setErro("");const{error}=await SB.auth.signInWithPassword({email:email.trim(),password:senha});setEnt(false);if(error){setErro("E-mail ou senha incorretos.");return;}onLogin();};
   return(<div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#c62828",padding:24}}>
     <div style={{background:"#fff",borderRadius:24,padding:32,width:"100%",maxWidth:380,boxShadow:"0 8px 40px #0003"}}>
       <div style={{textAlign:"center",marginBottom:28}}><span style={{fontSize:56}}>💵</span><p style={{margin:"10px 0 4px",fontWeight:900,fontSize:24,color:"#c62828"}}>PTK FINANCEIRO</p><p style={{margin:0,fontSize:13,color:"#888"}}>Entradas, saidas e contas</p></div>
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setErro("");}} placeholder="Seu e-mail" autoCapitalize="none" autoComplete="username" style={ip}/>
         <div style={{position:"relative"}}>
-          <input type={show?"text":"password"} value={senha} onChange={e=>{setSenha(e.target.value);setErro("");}} onKeyDown={e=>e.key==="Enter"&&tentar()} placeholder="Digite sua senha" style={{...ip,paddingRight:48}}/>
+          <input type={show?"text":"password"} value={senha} onChange={e=>{setSenha(e.target.value);setErro("");}} onKeyDown={e=>e.key==="Enter"&&tentar()} placeholder="Sua senha" autoComplete="current-password" style={{...ip,paddingRight:48}}/>
           <button onClick={()=>setShow(!show)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#aaa"}}>{show?"🙈":"👁️"}</button>
         </div>
         {erro&&<p style={{margin:0,color:"#b71c1c",fontSize:13,fontWeight:600}}>{erro}</p>}
-        <button onClick={tentar} style={{padding:"14px",border:"none",borderRadius:12,background:"#c62828",color:"#fff",fontWeight:800,cursor:"pointer",fontSize:16}}>Entrar</button>
+        <button onClick={tentar} style={{padding:"14px",border:"none",borderRadius:12,background:"#c62828",color:"#fff",fontWeight:800,cursor:"pointer",fontSize:16}} disabled={ent}>{ent?"Entrando...":"Entrar"}</button>
       </div>
       <p style={{textAlign:"center",margin:"20px 0 0",fontSize:12}}><a href="./" style={{color:"#aaa"}}>Voltar ao sistema</a></p>
     </div>
@@ -198,7 +198,9 @@ function Contas({contas,lancs,onSalvar}){
   </div>);}
 
 function App(){
-  const[usuario,setUsuario]=useState(null);
+  const[usuario,setUsuario]=useState(null);const[checando,setChecando]=useState(true);
+  const carregarPerfil=async()=>{const{data:{session}}=await SB.auth.getSession();if(!session){setUsuario(null);setChecando(false);return;}const{data}=await SB.from("perfis").select("nome,role").eq("id",session.user.id).maybeSingle();if(!data||data.role!=="master"){if(!data)await SB.auth.signOut();alert("Acesso apenas para master.");setUsuario(null);}else setUsuario(data);setChecando(false);};
+  useEffect(()=>{carregarPerfil();},[]);
   const[dados,setDados]=useState(null);const[erro,setErro]=useState(null);const[salv,setSalv]=useState(false);
   const[tela,setTela]=useState("resumo");const[mes,setMes]=useState(mesAtual());
   useEffect(()=>{if(!usuario)return;ler().then(setDados).catch(()=>setErro("Erro ao conectar."));},[usuario]);
@@ -208,7 +210,8 @@ function App(){
   const setDesp=lista=>salvar(d=>({...d,despesas:lista}));
   const setContas=lista=>salvar(d=>({...d,contas:lista}));
 
-  if(!usuario)return<Login onLogin={setUsuario}/>;
+  if(checando)return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh"}}><p style={{color:"#c62828",fontWeight:700,fontSize:17}}>Carregando...</p></div>);
+  if(!usuario)return<Login onLogin={carregarPerfil}/>;
   if(erro)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,padding:24,textAlign:"center"}}><span style={{fontSize:48}}>⚠️</span><p style={{color:"#c62828",fontWeight:700}}>{erro}</p><Btn onClick={()=>window.location.reload()} label="Tentar novamente"/></div>);
   if(!dados)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14}}><span style={{fontSize:48}}>💵</span><p style={{color:"#c62828",fontWeight:700,fontSize:17}}>Carregando...</p></div>);
 
@@ -224,7 +227,7 @@ function App(){
       <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:24}}>💵</span><div><p style={{margin:0,fontWeight:900,fontSize:17,lineHeight:1}}>PTK FINANCEIRO</p><p style={{margin:0,fontSize:10,opacity:.8,lineHeight:1.2}}>{salv?"💾 Salvando...":usuario.nome}</p></div></div>
       <div style={{display:"flex",gap:8}}>
         <a href="./" style={{background:"rgba(255,255,255,0.2)",color:"#fff",borderRadius:10,padding:"7px 12px",fontSize:12,fontWeight:600,textDecoration:"none"}}>🏍️ Sistema</a>
-        <button onClick={()=>{setUsuario(null);setDados(null);}} style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:10,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:600}}>Sair</button>
+        <button onClick={async()=>{await SB.auth.signOut();setUsuario(null);setDados(null);}} style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:10,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:600}}>Sair</button>
       </div>
     </div>
     <div style={{background:"#fff",borderBottom:"1.5px solid #eee",display:"flex",position:"sticky",top:56,zIndex:99}}>
