@@ -29,7 +29,12 @@ const BE="6a499571f5f4af5e2960a7df";
 const BL="6a4995a4f5f4af5e2960a862";
 let BK="";// criado automaticamente na 1a vez
 const HD={"Content-Type":"application/json","X-Master-Key":MK,"X-Bin-Private":"false"};
-const USUARIOS={"Loja@123":{nome:"Wellington",role:"master"},"Impalacar@123":{nome:"Patrick",role:"master"},"Vendedor1":{nome:"Vendedor 1",role:"vendas"}};
+const USUARIOS=[
+  {email:"wellimreis@hotmail.com",senha:"Loja@123",nome:"Wellington",role:"master"},
+  {email:"pwmotosbrasilltda@gmail.com",senha:"Loja@123",nome:"Wellington",role:"master"},
+  {email:"ptkbandeirantes@gmail.com",senha:"Impalacar@123",nome:"Patrick",role:"master"},
+  {email:"vendedor1@ptkmotos.com",senha:"Vendedor1",nome:"Vendedor 1",role:"vendas"},
+];
 const EMAILS=["pwmotosbrasilltda@gmail.com","ptkbandeirantes@gmail.com","wellimreis@hotmail.com"];
 async function rb(id){const r=await fetch("https://api.jsonbin.io/v3/b/"+id+"/latest",{headers:{"X-Master-Key":MK}});const d=await r.json();const v=d.record;return Array.isArray(v)?v.filter(x=>x&&Object.keys(x).length>0):[];}
 async function wb(id,data){await fetch("https://api.jsonbin.io/v3/b/"+id,{method:"PUT",headers:HD,body:JSON.stringify(data)});}
@@ -71,16 +76,28 @@ const Ta=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap
 const BtnExp=({onClick,label,color})=>(<button onClick={onClick} style={{padding:"8px 16px",border:"none",borderRadius:8,background:color||"#37474f",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>{label}</button>);
 const Btn=({onClick,label,color,full,disabled})=>(<button onClick={onClick} disabled={disabled} style={{padding:"12px 20px",border:"none",borderRadius:10,background:disabled?"#ccc":color||"#c62828",color:"#fff",fontWeight:700,cursor:disabled?"not-allowed":"pointer",fontSize:14,width:full?"100%":"auto"}}>{label}</button>);
 function Login({onLogin}){
-  const[senha,setSenha]=useState("");const[erro,setErro]=useState("");const[show,setShow]=useState(false);
-  const tentar=()=>{const u=USUARIOS[senha];if(u){onLogin(u);}else{setErro("Senha incorreta.");}};
+  const[email,setEmail]=useState(()=>{try{return localStorage.getItem('ptk_email')||'';}catch{return'';}});
+  const[senha,setSenha]=useState("");const[erro,setErro]=useState("");const[show,setShow]=useState(false);const[lembrar,setLembrar]=useState(()=>{try{return!!localStorage.getItem('ptk_email');}catch{return false;}});
+  const tentar=()=>{
+    const u=USUARIOS.find(u=>u.email.toLowerCase()===email.trim().toLowerCase()&&u.senha===senha);
+    if(u){
+      try{if(lembrar)localStorage.setItem('ptk_email',email.trim());else localStorage.removeItem('ptk_email');}catch{}
+      onLogin(u);
+    }else{setErro("Email ou senha incorretos.");}
+  };
   return(<div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#c62828",padding:24}}>
     <div style={{background:"#fff",borderRadius:24,padding:32,width:"100%",maxWidth:380,boxShadow:"0 8px 40px #0003"}}>
       <div style={{textAlign:"center",marginBottom:28}}><span style={{fontSize:56}}>🏍️</span><p style={{margin:"10px 0 4px",fontWeight:900,fontSize:24,color:"#c62828"}}>PTK MOTOS</p><p style={{margin:0,fontSize:13,color:"#888"}}>Sistema de Gestao Interna</p></div>
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setErro("");}} onKeyDown={e=>e.key==="Enter"&&tentar()} placeholder="Email" autoComplete="email" style={{...ip}}/>
         <div style={{position:"relative"}}>
-          <input type={show?"text":"password"} value={senha} onChange={e=>{setSenha(e.target.value);setErro("");}} onKeyDown={e=>e.key==="Enter"&&tentar()} placeholder="Digite sua senha" style={{...ip,paddingRight:48}}/>
+          <input type={show?"text":"password"} value={senha} onChange={e=>{setSenha(e.target.value);setErro("");}} onKeyDown={e=>e.key==="Enter"&&tentar()} placeholder="Senha" autoComplete="current-password" style={{...ip,paddingRight:48}}/>
           <button onClick={()=>setShow(!show)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#aaa"}}>{show?"🙈":"👁️"}</button>
         </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,fontSize:13,color:"#666",cursor:"pointer"}}>
+          <input type="checkbox" checked={lembrar} onChange={e=>setLembrar(e.target.checked)} style={{width:16,height:16,accentColor:"#c62828"}}/>
+          Lembrar meu login
+        </label>
         {erro&&<p style={{margin:0,color:"#b71c1c",fontSize:13,fontWeight:600}}>{erro}</p>}
         <button onClick={tentar} style={{padding:"14px",border:"none",borderRadius:12,background:"#c62828",color:"#fff",fontWeight:800,cursor:"pointer",fontSize:16}}>Entrar</button>
       </div>
