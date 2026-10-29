@@ -8,7 +8,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f7f7f7;min-height:100vh;padding-bottom:70px}
@@ -21,16 +20,19 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 <div id="root"></div>
 <script type="text/babel">
 const{useState,useEffect}=React;
-const SB=supabase.createClient("https://mvfuquomyxbtdaywrhmy.supabase.co","sb_publishable_nt9279fkfL4mJxp8v7xfyg__phGzWkP");
-const BM="motos";
-const BF="financeiro";
-const BC="contas";
-const BP="pessoas";
-const BE="empresas";
-const BL="leads";
+const MK="$2a$10$L4xwan84Zj7itaLh2cZ.jOsmp0rhnIOb1bbX50QA1PcY3sngbuzP.";
+const BM="6a367ceada38895dfee27f90";
+const BF="6a367da3f5f4af5e29140640";
+const BC="6a367dd7da38895dfee282c0";
+const BP="6a49953cf5f4af5e2960a766";
+const BE="6a499571f5f4af5e2960a7df";
+const BL="6a4995a4f5f4af5e2960a862";
+let BK="";// criado automaticamente na 1a vez
+const HD={"Content-Type":"application/json","X-Master-Key":MK,"X-Bin-Private":"false"};
+const USUARIOS={"Loja@123":{nome:"Wellington",role:"master"},"Impalacar@123":{nome:"Patrick",role:"master"},"Vendedor1":{nome:"Vendedor 1",role:"vendas"}};
 const EMAILS=["pwmotosbrasilltda@gmail.com","ptkbandeirantes@gmail.com","wellimreis@hotmail.com"];
-async function rb(id){const{data,error}=await SB.from("colecoes").select("dados").eq("nome",id).maybeSingle();if(error)throw error;const v=data?.dados;return Array.isArray(v)?v.filter(x=>x&&Object.keys(x).length>0):[];}
-async function wb(id,data){const{error}=await SB.from("colecoes").upsert({nome:id,dados:data});if(error)throw error;}
+async function rb(id){const r=await fetch("https://api.jsonbin.io/v3/b/"+id+"/latest",{headers:{"X-Master-Key":MK}});const d=await r.json();const v=d.record;return Array.isArray(v)?v.filter(x=>x&&Object.keys(x).length>0):[];}
+async function wb(id,data){await fetch("https://api.jsonbin.io/v3/b/"+id,{method:"PUT",headers:HD,body:JSON.stringify(data)});}
 const fm=v=>Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const fp=v=>Number(v||0).toFixed(1)+"%";
 const fd=d=>d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
@@ -69,19 +71,18 @@ const Ta=({label,...p})=>(<div style={{display:"flex",flexDirection:"column",gap
 const BtnExp=({onClick,label,color})=>(<button onClick={onClick} style={{padding:"8px 16px",border:"none",borderRadius:8,background:color||"#37474f",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:13}}>{label}</button>);
 const Btn=({onClick,label,color,full,disabled})=>(<button onClick={onClick} disabled={disabled} style={{padding:"12px 20px",border:"none",borderRadius:10,background:disabled?"#ccc":color||"#c62828",color:"#fff",fontWeight:700,cursor:disabled?"not-allowed":"pointer",fontSize:14,width:full?"100%":"auto"}}>{label}</button>);
 function Login({onLogin}){
-  const[email,setEmail]=useState("");const[senha,setSenha]=useState("");const[erro,setErro]=useState("");const[show,setShow]=useState(false);const[ent,setEnt]=useState(false);
-  const tentar=async()=>{if(!email||!senha){setErro("Informe e-mail e senha.");return;}setEnt(true);setErro("");const{error}=await SB.auth.signInWithPassword({email:email.trim(),password:senha});setEnt(false);if(error){setErro("E-mail ou senha incorretos.");return;}onLogin();};
+  const[senha,setSenha]=useState("");const[erro,setErro]=useState("");const[show,setShow]=useState(false);
+  const tentar=()=>{const u=USUARIOS[senha];if(u){onLogin(u);}else{setErro("Senha incorreta.");}};
   return(<div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#c62828",padding:24}}>
     <div style={{background:"#fff",borderRadius:24,padding:32,width:"100%",maxWidth:380,boxShadow:"0 8px 40px #0003"}}>
       <div style={{textAlign:"center",marginBottom:28}}><span style={{fontSize:56}}>🏍️</span><p style={{margin:"10px 0 4px",fontWeight:900,fontSize:24,color:"#c62828"}}>PTK MOTOS</p><p style={{margin:0,fontSize:13,color:"#888"}}>Sistema de Gestao Interna</p></div>
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
-        <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setErro("");}} placeholder="Seu e-mail" autoCapitalize="none" autoComplete="username" style={ip}/>
         <div style={{position:"relative"}}>
-          <input type={show?"text":"password"} value={senha} onChange={e=>{setSenha(e.target.value);setErro("");}} onKeyDown={e=>e.key==="Enter"&&tentar()} placeholder="Sua senha" autoComplete="current-password" style={{...ip,paddingRight:48}}/>
+          <input type={show?"text":"password"} value={senha} onChange={e=>{setSenha(e.target.value);setErro("");}} onKeyDown={e=>e.key==="Enter"&&tentar()} placeholder="Digite sua senha" style={{...ip,paddingRight:48}}/>
           <button onClick={()=>setShow(!show)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:18,color:"#aaa"}}>{show?"🙈":"👁️"}</button>
         </div>
         {erro&&<p style={{margin:0,color:"#b71c1c",fontSize:13,fontWeight:600}}>{erro}</p>}
-        <button onClick={tentar} style={{padding:"14px",border:"none",borderRadius:12,background:"#c62828",color:"#fff",fontWeight:800,cursor:"pointer",fontSize:16}} disabled={ent}>{ent?"Entrando...":"Entrar"}</button>
+        <button onClick={tentar} style={{padding:"14px",border:"none",borderRadius:12,background:"#c62828",color:"#fff",fontWeight:800,cursor:"pointer",fontSize:16}}>Entrar</button>
       </div>
       <p style={{textAlign:"center",margin:"20px 0 0",fontSize:12,color:"#ccc"}}>PTK Motos · Lapa · Sao Paulo</p>
     </div>
@@ -250,94 +251,22 @@ function Metas({motos,contas,isMaster}){
       <div style={{padding:"10px 14px",background:"#f9f9f9",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between"}}><span>Total extras</span><span style={{color:"#c62828"}}>{fm(tot)}</span></div>
     </div>)}
   </div>);}
-function PostCondicao({f,st}){
-  const BANCOS=["Santander","Omni","Pan"];
-  const linhas=f.postParcelas&&f.postParcelas.length?f.postParcelas:[{n:"48",v:""},{n:"",v:""},{n:"",v:""}];
-  const setLinha=(i,k,v)=>st("postParcelas",linhas.map((l,j)=>j===i?{...l,[k]:v}:l));
-  const[copiado,setCopiado]=useState(false);const[foto,setFoto]=useState(null);const[img,setImg]=useState(null);const[gerando,setGerando]=useState(false);
-  const validas=linhas.filter(l=>Number(l.n)>0&&Number(l.v)>0).sort((a,b)=>Number(b.n)-Number(a.n));
-  const ent=Number(f.postEntrada||0);
-  const fi=v=>"R$ "+Number(v).toLocaleString("pt-BR",{maximumFractionDigits:0});
-  const bancos=f.postBancos||BANCOS;
-  const titulo=[f.marca,f.modelo,f.ano].filter(Boolean).join(" ").toUpperCase();
-  const km=f.km?(/^\d+$/.test(String(f.km))?Number(f.km).toLocaleString("pt-BR"):f.km)+" km":"";
-  const det=[km,f.cor||""].filter(Boolean).join(" · ");
-  const limpa=t=>(t||"").toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"");
-  const tags=["ptkmotos","motos","motosp",limpa(f.marca),limpa(f.marca)+limpa(f.modelo),"motofinanciada","financiamentodemoto","motoseminova","saopaulo"].filter((t,i,a)=>t&&a.indexOf(t)===i).map(t=>"#"+t).join(" ");
-  const L=["🔥 "+titulo+" 🔥",""];
-  L.push(ent>0?"✅ ENTRADA DE "+fi(ent):"✅ SEM ENTRADA");
-  validas.forEach(l=>L.push("💰 "+l.n+"x de "+fm(l.v)));
-  if(f.postCartao)L.push("💳 Ou em até "+(f.postCartaoN||"18")+"x no cartão"+(Number(f.postCartaoV)>0?" de "+fm(f.postCartaoV):""));
-  if(f.postTroca!==false)L.push("🔁 Aceitamos sua moto na troca");
-  L.push("");
-  if(det)L.push("📍 "+det);
-  if(f.postDestaque)L.push("⭐ "+f.postDestaque);
-  if(det||f.postDestaque)L.push("");
-  if(bancos.length)L.push("🏦 Financiamento: "+bancos.join(", "));
-  L.push("📲 Chame no direct ou no WhatsApp (11) 94167-2110 - Patrick");
-  L.push("📍 PTK Motos · São Paulo/SP","","*Condições sujeitas a análise de crédito.","",tags);
-  const texto=L.join("\n");
-  const copiar=()=>{const ok=()=>{setCopiado(true);setTimeout(()=>setCopiado(false),2000);};
-    if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(texto).then(ok);return;}
-    const t=document.createElement("textarea");t.value=texto;t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);ok();};
-  const escolherFoto=e=>{const a=e.target.files[0];if(!a)return;const r=new FileReader();r.onload=()=>{setFoto(r.result);setImg(null);};r.readAsDataURL(a);};
-  const gerarImagem=async()=>{setGerando(true);try{
-    const W=1080,H=1350;const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
-    const fonte=(s,w)=>{x.font=w+" "+s+"px system-ui,-apple-system,sans-serif";};
-    const caber=(t,max,s,w)=>{fonte(s,w);while(x.measureText(t).width>max&&s>24){s-=2;fonte(s,w);}};
-    x.fillStyle="#1a1a1a";x.fillRect(0,0,W,H);
-    if(foto){const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=foto;});const s=Math.max(W/im.width,H/im.height);const w=im.width*s,h=im.height*s;x.drawImage(im,(W-w)/2,(H-h)/2,w,h);}
-    const g=x.createLinearGradient(0,0,0,320);g.addColorStop(0,"rgba(0,0,0,0.8)");g.addColorStop(1,"rgba(0,0,0,0)");x.fillStyle=g;x.fillRect(0,0,W,320);
-    x.fillStyle="#fff";x.textAlign="left";caber(titulo,W-100,76,900);x.fillText(titulo,50,115);
-    fonte(34,700);x.fillStyle="rgba(255,255,255,0.9)";x.fillText(det?det+"  ·  PTK MOTOS":"PTK MOTOS · São Paulo",50,170);
-    const extras=validas.slice(1);const altura=300+(extras.length?70:0)+(f.postCartao?60:0);const topo=H-altura;
-    x.fillStyle="#c62828";x.fillRect(0,topo,W,altura);x.fillStyle="#ffd600";x.fillRect(0,topo,W,10);
-    x.fillStyle="#fff";x.textAlign="center";let y=topo+115;
-    const l1=ent>0?"ENTRADA "+fi(ent):"SEM ENTRADA";caber(l1,W-80,96,900);x.fillText(l1,W/2,y);y+=95;
-    if(validas[0]){const l2=(ent>0?"+ ":"")+validas[0].n+"x de "+fm(validas[0].v);caber(l2,W-80,70,800);x.fillText(l2,W/2,y);y+=70;}
-    if(extras.length){const l3=extras.map(l=>l.n+"x "+fm(l.v)).join("   ·   ");caber(l3,W-80,42,700);x.fillText(l3,W/2,y);y+=60;}
-    if(f.postCartao){const l4="ou até "+(f.postCartaoN||"18")+"x no cartão"+(Number(f.postCartaoV)>0?" de "+fm(f.postCartaoV):"");caber(l4,W-80,40,700);x.fillText(l4,W/2,y);y+=55;}
-    fonte(28,600);x.fillStyle="rgba(255,255,255,0.85)";x.fillText("@ptk.motos  ·  (11) 94167-2110  ·  Sujeito a análise de crédito",W/2,H-30);
-    setImg(c.toDataURL("image/jpeg",0.92));
-  }catch(e){alert("Nao foi possivel gerar a imagem.");}setGerando(false);};
-  const chk={display:"flex",alignItems:"center",gap:8,fontSize:14,fontWeight:600,color:"#444"};
-  const caixa={background:"#fff",border:"1.5px solid #eee",borderRadius:12,padding:14,display:"flex",flexDirection:"column",gap:10};
-  return(<div style={{display:"flex",flexDirection:"column",gap:12}}>
-    <div style={{...caixa,background:"#fff8e1",border:"1.5px solid #ffcc80"}}>
-      <p style={{margin:0,fontWeight:700,color:"#e65100",fontSize:13}}>💰 CONDIÇÃO DO POST</p>
-      <Fi label="Entrada R$ (vazio = sem entrada)" type="number" value={f.postEntrada||""} onChange={e=>st("postEntrada",e.target.value)} inputMode="decimal" placeholder="3000"/>
-      {linhas.map((l,i)=>(<div key={i} style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8}}>
-        <Fi label={i===0?"Parcelas":"Parcelas (opcional)"} type="number" value={l.n} onChange={e=>setLinha(i,"n",e.target.value)} inputMode="numeric" placeholder={["48","36","24"][i]}/>
-        <Fi label="Valor da parcela R$" type="number" value={l.v} onChange={e=>setLinha(i,"v",e.target.value)} inputMode="decimal" placeholder="489"/>
-      </div>))}
-      <label style={chk}><input type="checkbox" checked={!!f.postCartao} onChange={e=>st("postCartao",e.target.checked)}/>💳 Cartão de crédito</label>
-      {f.postCartao&&(<div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:8}}>
-        <Fi label="Até quantas vezes" type="number" value={f.postCartaoN||"18"} onChange={e=>st("postCartaoN",e.target.value)} inputMode="numeric"/>
-        <Fi label="Valor da parcela R$ (opcional)" type="number" value={f.postCartaoV||""} onChange={e=>st("postCartaoV",e.target.value)} inputMode="decimal"/>
-      </div>)}
-      <label style={chk}><input type="checkbox" checked={f.postTroca!==false} onChange={e=>st("postTroca",e.target.checked)}/>🔁 Aceita troca</label>
-      <div><p style={{...lb,margin:"0 0 6px"}}>Bancos no post</p><div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
-        {BANCOS.map(b=>(<label key={b} style={chk}><input type="checkbox" checked={bancos.includes(b)} onChange={e=>st("postBancos",e.target.checked?[...bancos,b]:bancos.filter(z=>z!==b))}/>{b}</label>))}
-      </div></div>
-      <Fi label="Destaque (opcional)" value={f.postDestaque||""} onChange={e=>st("postDestaque",e.target.value)} placeholder="Ex: Único dono, revisada, pneus novos"/>
-    </div>
-    <div style={caixa}>
-      <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>📝 LEGENDA</p>
-      <div style={{background:"#fafafa",borderRadius:10,padding:12,fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap",border:"1px solid #eee"}}>{texto}</div>
-      <button onClick={copiar} style={{padding:"11px",border:"none",borderRadius:10,background:copiado?"#2e7d32":"#c62828",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14}}>{copiado?"✓ Copiado!":"📋 Copiar legenda"}</button>
-    </div>
-    <div style={caixa}>
-      <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>🖼️ IMAGEM DO POST</p>
-      <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,border:"2px dashed #ddd",borderRadius:12,padding:"14px",cursor:"pointer",background:"#fafafa",color:"#666",fontSize:14,fontWeight:600}}>
-        📷 {foto?"Trocar foto":"Escolher foto da moto"}<input type="file" accept="image/*" onChange={escolherFoto} style={{display:"none"}}/></label>
-      <Btn onClick={gerarImagem} label={gerando?"Gerando...":"🖼️ Gerar imagem com a condição"} full disabled={gerando}/>
-      {img&&(<div style={{display:"flex",flexDirection:"column",gap:8}}>
-        <img src={img} alt="Post" style={{width:"100%",borderRadius:10,border:"1px solid #eee"}}/>
-        <a href={img} download={"post_"+(f.placa||"moto")+".jpg"} style={{textAlign:"center",padding:"11px",borderRadius:10,background:"#2e7d32",color:"#fff",fontWeight:700,textDecoration:"none",fontSize:14}}>⬇️ Baixar imagem</a>
-        <p style={{margin:0,fontSize:12,color:"#888",textAlign:"center"}}>No celular, você também pode segurar o dedo na imagem para salvar.</p>
-      </div>)}
-    </div>
-    <p style={{margin:0,fontSize:12,color:"#888"}}>As condições ficam guardadas nesta moto quando você clicar em Salvar Moto.</p>
+function GerarLegenda({moto}){
+  const[loading,setLoading]=useState(false);const[legenda,setLegenda]=useState("");const[copiado,setCopiado]=useState(false);
+  const gerar=async()=>{
+    setLoading(true);setLegenda("");
+    const prompt="Crie uma legenda para Instagram para venda desta moto usada na loja PTK Motos em Sao Paulo.\n\nMOTO:\n- "+moto.marca+" "+moto.modelo+" "+moto.ano+"\n- Cor: "+(moto.cor||"nao informada")+"\n- KM: "+(moto.km||"nao informado")+"\n- Placa: "+moto.placa+"\n- Preco: "+fm(moto.precoVenda||0)+"\n\nA legenda deve ser animada, ter emojis, destacar o preco, call to action WhatsApp (11) 94167-2110 Patrick, mencionar PTK Motos Lapa SP, hashtags no final, max 300 palavras.";
+    try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:600,messages:[{role:"user",content:prompt}]})});const data=await res.json();setLegenda(data.content?.map(x=>x.text||"").join("").trim());}
+    catch(e){setLegenda("Erro ao gerar. Tente novamente.");}
+    setLoading(false);};
+  const copiar=()=>{navigator.clipboard.writeText(legenda).then(()=>{setCopiado(true);setTimeout(()=>setCopiado(false),2000);});};
+  return(<div style={{background:"#f3e5f5",border:"1.5px solid #ce93d8",borderRadius:12,padding:16,display:"flex",flexDirection:"column",gap:10}}>
+    <p style={{margin:0,fontWeight:700,color:"#6a1b9a",fontSize:13}}>📱 LEGENDA INSTAGRAM</p>
+    <Btn onClick={gerar} label={loading?"Gerando...":"✨ Gerar Legenda"} color="#6a1b9a" full disabled={loading}/>
+    {legenda&&(<div>
+      <div style={{background:"#fff",borderRadius:10,padding:14,fontSize:13,lineHeight:1.7,color:"#333",whiteSpace:"pre-wrap",border:"1px solid #e1bee7",marginBottom:8}}>{legenda}</div>
+      <button onClick={copiar} style={{width:"100%",padding:"10px",border:"none",borderRadius:10,background:copiado?"#2e7d32":"#6a1b9a",color:"#fff",fontWeight:700,cursor:"pointer",fontSize:14}}>{copiado?"✓ Copiado!":"📋 Copiar legenda"}</button>
+    </div>)}
   </div>);}
 function Mf({initial,onSave,onCancel,usuario,pessoas}){
   const isMaster=usuario?.role==="master";
@@ -446,7 +375,7 @@ function Mf({initial,onSave,onCancel,usuario,pessoas}){
         <a href={"https://www.olx.com.br/motos-e-acessorios/motos?q="+encodeURIComponent((f.marca+" "+f.modelo).trim())} target="_blank" style={{flex:1,padding:"10px",background:"#e65100",color:"#fff",borderRadius:10,fontSize:13,fontWeight:700,textDecoration:"none",textAlign:"center"}}>🔍 OLX</a>
         <a href="https://www.instagram.com/ptk.motos" target="_blank" style={{flex:1,padding:"10px",background:"linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",color:"#fff",borderRadius:10,fontSize:13,fontWeight:700,textDecoration:"none",textAlign:"center"}}>📸 Instagram</a>
       </div>
-      {f.marca&&f.modelo?<PostCondicao f={f} st={st}/>:<div style={{background:"#f5f5f5",borderRadius:12,padding:20,textAlign:"center",color:"#aaa"}}><p>Preencha marca e modelo para montar o post</p></div>}
+      {f.marca&&f.modelo?<GerarLegenda moto={f}/>:<div style={{background:"#f5f5f5",borderRadius:12,padding:20,textAlign:"center",color:"#aaa"}}><p>Preencha marca e modelo para gerar a legenda</p></div>}
     </div>)}
     {tab==="venda"&&f.status==="Vendida"&&isMaster&&(<div style={{display:"flex",flexDirection:"column",gap:16}}>
       <p style={{margin:0,fontWeight:700,color:"#c62828",fontSize:13}}>DADOS DO COMPRADOR</p>
@@ -1095,25 +1024,136 @@ function Leads({leads,onSave,pessoas}){
       </div>
       {l.telefone&&(<a href={"https://wa.me/55"+l.telefone.replace(/\D/g,"")} target="_blank" style={{display:"block",marginTop:10,padding:"8px",background:"#25d366",color:"#fff",borderRadius:10,textDecoration:"none",textAlign:"center",fontWeight:700,fontSize:13}}>💬 WhatsApp</a>)}
     </div>))}
-  </div>);}function App(){
-  const[usuario,setUsuario]=useState(null);const[checando,setChecando]=useState(true);
+  </div>);}// ═══════════════════════════════════════════════════
+// MÓDULO CONCILIAÇÃO BANCÁRIA
+// ═══════════════════════════════════════════════════
+const MESES_PT={'janeiro':1,'fevereiro':2,'março':3,'marco':3,'abril':4,'maio':5,'junho':6,'julho':7,'agosto':8,'setembro':9,'outubro':10,'novembro':11,'dezembro':12};
+function parseDateSantander(str){if(!str)return'';const m=String(str).toLowerCase().match(/(\d+)\s+de\s+(\w+)\s+de\s+(\d{4})/);if(!m)return'';const dia=m[1].padStart(2,'0');const mes=String(MESES_PT[m[2]]||1).padStart(2,'0');return`${m[3]}-${mes}-${dia}`;}
+function categorizarAuto(desc,valor,tipo){const d=(desc||'').toUpperCase();const v=Number(valor);if(tipo==='credito'){if(d.includes('PIX RECEBIDO')||d.includes('TED RECEBIDA')){if(v>=4000)return{cat:'Venda de Moto',conf:'sugerido'};return{cat:'Recebimento',conf:'sugerido'};}if(d.includes('RESGATE CONTAMAX')||d.includes('APLICACAO CONTAMAX'))return{cat:'Aplicação (ignorar)',conf:'auto'};return{cat:'Entrada',conf:'manual'};}else{if(d.includes('RESGATE CONTAMAX')||d.includes('APLICACAO CONTAMAX'))return{cat:'Aplicação (ignorar)',conf:'auto'};if(d.includes('PIX ENVIADO')||d.includes('PAGAMENTO A FORNECEDORES')){if(v>=4000&&v<=29500)return{cat:'Compra de Moto',conf:'sugerido'};if(v>=500&&v<=2500)return{cat:'Sinal de Compra',conf:'sugerido'};if(v>29500)return{cat:'PIX Alto (verificar)',conf:'manual'};return{cat:'PIX/Fornecedor',conf:'manual'};}if(d.includes('COMPRA CARTAO DEB MC'))return{cat:'Despesa Loja',conf:'auto'};if(d.includes('PAGAMENTO DE BOLETO'))return{cat:'Pagamento de Conta',conf:'auto'};if(d.includes('PAGAMENTO DE TRIBUTO')||d.includes('PAGAMENTO IPVA')||d.includes('PAGAMENTO DARF'))return{cat:'Impostos',conf:'auto'};if(d.includes('PAGAMENTO CARTAO')||d.includes('DEBITO AUT. FAT'))return{cat:'Cartão de Crédito',conf:'auto'};return{cat:'Saída',conf:'manual'};}}
+function lerExtratoSantander(dados){const tr=[];for(let i=7;i<dados.length;i++){const row=dados[i];const dataStr=row[0],desc=row[1],credito=row[2],debito=row[3];if(!dataStr||!desc)continue;const data=parseDateSantander(String(dataStr));if(!data)continue;if(credito&&Number(credito)>0){const{cat,conf}=categorizarAuto(desc,credito,'credito');tr.push({id:uid(),banco:'Santander',data,desc:String(desc),valor:Number(credito),tipo:'Entrada',cat,conf,confirmado:conf==='auto'});}if(debito&&Number(debito)>0){const{cat,conf}=categorizarAuto(desc,debito,'debito');tr.push({id:uid(),banco:'Santander',data,desc:String(desc),valor:Number(debito),tipo:'Saída',cat,conf,confirmado:conf==='auto'});}}return tr;}
+function lerExtratoNubank(texto){const linhas=texto.split('\n').filter(l=>l.trim());const tr=[];for(let i=1;i<linhas.length;i++){const cols=linhas[i].split(',');if(cols.length<4)continue;const[dataRaw,valorRaw,,descRaw]=cols;const data=(dataRaw||'').trim();const valor=Math.abs(parseFloat(valorRaw)||0);const desc=(descRaw||'').replace(/"/g,'').trim();if(!data||!valor)continue;const tipo=parseFloat(valorRaw)>=0?'Entrada':'Saída';const{cat,conf}=categorizarAuto(desc,valor,tipo==='Entrada'?'credito':'debito');tr.push({id:uid(),banco:'Nubank',data,desc,valor,tipo,cat,conf,confirmado:conf==='auto'});}return tr;}
+const CATS_SAIDA=['Compra de Moto','Sinal de Compra','Despesa Loja','Pagamento de Conta','Impostos','Cartão de Crédito','PIX/Fornecedor','PIX Alto (verificar)','Retirada Sócios','Salário','Outros'];
+const CATS_ENTRADA=['Venda de Moto','Recebimento','Transferência','Entrada','Outros'];
+function LancamentoRapido({onAdd}){
+  const[txt,setTxt]=useState('');
+  const parsear=()=>{const itens=txt.split(',').map(s=>s.trim()).filter(Boolean);const novos=[];for(const item of itens){const m=item.match(/^(.+?)\s+([\d.,]+)$/);if(!m)continue;const descRaw=m[1].trim().toLowerCase();const valor=parseFloat(m[2].replace(',','.'));if(!valor)continue;let cat='Outros',tipo='Saída';if(/venda|receb/i.test(descRaw)){cat='Venda de Moto';tipo='Entrada';}else if(/compra|sinal/i.test(descRaw)){cat='Compra de Moto';}else if(/retirada|socio/i.test(descRaw)){cat='Retirada Sócios';}else if(/salario|salário/i.test(descRaw)){cat='Salário';}else if(/luz|energia|agua|aluguel|internet|telefone/i.test(descRaw)){cat='Pagamento de Conta';}else if(/gasolina|combustivel|posto/i.test(descRaw)){cat='Despesa Loja';}novos.push({id:uid(),banco:'Manual',data:td(),desc:m[1].trim(),valor,tipo,cat,conf:'auto',confirmado:true});}if(novos.length===0){alert('Formato: "luz 100, retirada 5000, venda moto 15000"');return;}onAdd(novos);setTxt('');};
+  return(<div style={{background:'#fff',border:'1.5px solid #eee',borderRadius:14,padding:16,display:'flex',flexDirection:'column',gap:12}}>
+    <p style={{margin:0,fontWeight:700,fontSize:14}}>⚡ Lançamento Rápido</p>
+    <p style={{margin:0,fontSize:12,color:'#888'}}>Digite separado por vírgula: <em>luz 100, retirada 5000, venda moto 15000</em></p>
+    <textarea value={txt} onChange={e=>setTxt(e.target.value)} placeholder="luz 100, gasolina 200, retirada socios 5000..." style={{...ip,resize:'vertical',minHeight:64}}/>
+    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+      {['luz 100','retirada 5000','venda moto 15000','compra moto 8500','gasolina 200'].map(ex=>(<button key={ex} onClick={()=>setTxt(t=>t?(t+', '+ex):ex)} style={{padding:'5px 10px',border:'1.5px solid #ddd',borderRadius:20,background:'#f9f9f9',fontSize:12,cursor:'pointer',color:'#555'}}>{ex}</button>))}
+    </div>
+    <Btn onClick={parsear} label="➕ Lançar" color="#1565c0" full/>
+  </div>);}
+function Conciliacao({extratoSalvo,onSalvar}){
+  const[transacoes,setTransacoes]=useState(extratoSalvo||[]);
+  const[aba,setAba]=useState('resumo');
+  const[mesFil,setMesFil]=useState(mesAtual());
+  const[catFil,setCatFil]=useState('Todas');
+  const[loading,setLoading]=useState(false);
+  const[pendFil,setPendFil]=useState(false);
+  useEffect(()=>{onSalvar(transacoes);},[transacoes]);
+  const importarXLSX=(e)=>{const file=e.target.files[0];if(!file)return;setLoading(true);const reader=new FileReader();reader.onload=(ev)=>{try{const wb=XLSX.read(ev.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];const dados=XLSX.utils.sheet_to_json(ws,{header:1,raw:true});const novas=lerExtratoSantander(dados);setTransacoes(prev=>{const ex=new Set(prev.map(t=>t.banco+t.data+t.desc+t.valor));const un=novas.filter(t=>!ex.has(t.banco+t.data+t.desc+t.valor));return[...prev,...un];});alert(`✅ ${novas.length} transações importadas do Santander!`);}catch(err){alert('Erro ao ler arquivo: '+err.message);}setLoading(false);};reader.readAsBinaryString(file);e.target.value='';};
+  const importarCSV=(e)=>{const file=e.target.files[0];if(!file)return;setLoading(true);const reader=new FileReader();reader.onload=(ev)=>{try{const novas=lerExtratoNubank(ev.target.result);setTransacoes(prev=>{const ex=new Set(prev.map(t=>t.banco+t.data+t.desc+t.valor));const un=novas.filter(t=>!ex.has(t.banco+t.data+t.desc+t.valor));return[...prev,...un];});alert(`✅ ${novas.length} transações importadas do Nubank!`);}catch(err){alert('Erro ao ler CSV: '+err.message);}setLoading(false);};reader.readAsText(file,'UTF-8');e.target.value='';};
+  const confirmar=(id,cat)=>setTransacoes(prev=>prev.map(t=>t.id===id?{...t,cat,confirmado:true,conf:'auto'}:t));
+  const remover=(id)=>{if(confirm('Remover lançamento?'))setTransacoes(prev=>prev.filter(t=>t.id!==id));};
+  const mesesDisp=[...new Set(transacoes.map(t=>t.data.slice(0,7)).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  if(!mesesDisp.includes(mesAtual()))mesesDisp.unshift(mesAtual());
+  const tFil=transacoes.filter(t=>t.data.startsWith(mesFil)&&(catFil==='Todas'||t.cat===catFil)&&(!pendFil||!t.confirmado)).sort((a,b)=>b.data.localeCompare(a.data));
+  const tMes=transacoes.filter(t=>t.data.startsWith(mesFil));
+  const entradas=tMes.filter(t=>t.tipo==='Entrada'&&t.cat!=='Aplicação (ignorar)').reduce((s,t)=>s+t.valor,0);
+  const saidas=tMes.filter(t=>t.tipo==='Saída'&&t.cat!=='Aplicação (ignorar)').reduce((s,t)=>s+t.valor,0);
+  const saldo=entradas-saidas;
+  const nPend=transacoes.filter(t=>!t.confirmado).length;
+  const porCat={};tMes.filter(t=>t.cat!=='Aplicação (ignorar)').forEach(t=>{if(!porCat[t.cat])porCat[t.cat]={entrada:0,saida:0,qtd:0};if(t.tipo==='Entrada')porCat[t.cat].entrada+=t.valor;else porCat[t.cat].saida+=t.valor;porCat[t.cat].qtd++;});
+  const TabB=({id,label})=>(<button onClick={()=>setAba(id)} style={{padding:'9px 14px',border:'none',borderRadius:10,cursor:'pointer',fontSize:12,fontWeight:700,background:aba===id?'#c62828':'transparent',color:aba===id?'#fff':'#666',flex:1,whiteSpace:'nowrap'}}>{label}</button>);
+  return(<div style={{display:'flex',flexDirection:'column',gap:14}}>
+    <div style={{background:'linear-gradient(135deg,#1565c0,#0d47a1)',borderRadius:16,padding:20,color:'#fff'}}>
+      <p style={{margin:'0 0 4px',fontSize:12,opacity:.8}}>🏦 Conciliação Bancária — {mesNome(mesFil)}</p>
+      <p style={{margin:'0 0 12px',fontWeight:900,fontSize:28,color:saldo>=0?'#a5d6a7':'#ef9a9a'}}>{fm(saldo)}</p>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        <div style={{background:'rgba(255,255,255,.15)',borderRadius:10,padding:'10px 12px'}}><p style={{margin:0,fontSize:10,opacity:.8}}>↑ ENTRADAS</p><p style={{margin:'4px 0 0',fontWeight:800,fontSize:16}}>{fm(entradas)}</p></div>
+        <div style={{background:'rgba(255,255,255,.15)',borderRadius:10,padding:'10px 12px'}}><p style={{margin:0,fontSize:10,opacity:.8}}>↓ SAÍDAS</p><p style={{margin:'4px 0 0',fontWeight:800,fontSize:16}}>{fm(saidas)}</p></div>
+      </div>
+      {nPend>0&&<p style={{margin:'10px 0 0',fontSize:12,background:'rgba(255,193,7,.3)',borderRadius:8,padding:'6px 10px'}}>⚠️ {nPend} lançamento{nPend>1?'s':''} aguardando confirmação</p>}
+    </div>
+    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+      {mesesDisp.map(m=>(<button key={m} onClick={()=>setMesFil(m)} style={{padding:'7px 14px',border:'1.5px solid',borderColor:mesFil===m?'#1565c0':'#ddd',borderRadius:20,background:mesFil===m?'#1565c0':'#fff',color:mesFil===m?'#fff':'#555',fontSize:12,fontWeight:600,cursor:'pointer'}}>{mesNome(m).split(' ')[0]+' '+m.slice(0,4)}</button>))}
+    </div>
+    <div style={{background:'#fff',border:'1.5px solid #eee',borderRadius:14,padding:16}}>
+      <p style={{margin:'0 0 12px',fontWeight:700,fontSize:14}}>📁 Importar Extrato</p>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        <label style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,border:'2px dashed #1565c0',borderRadius:12,padding:'16px 10px',cursor:'pointer',background:'#e3f2fd',color:'#1565c0',fontSize:13,fontWeight:700,textAlign:'center'}}><span style={{fontSize:28}}>🏦</span>Santander<span style={{fontSize:11,fontWeight:400,opacity:.8}}>.xlsx</span><input type="file" accept=".xlsx" onChange={importarXLSX} style={{display:'none'}}/></label>
+        <label style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,border:'2px dashed #820ad1',borderRadius:12,padding:'16px 10px',cursor:'pointer',background:'#f3e5f5',color:'#820ad1',fontSize:13,fontWeight:700,textAlign:'center'}}><span style={{fontSize:28}}>💜</span>Nubank<span style={{fontSize:11,fontWeight:400,opacity:.8}}>.csv</span><input type="file" accept=".csv" onChange={importarCSV} style={{display:'none'}}/></label>
+      </div>
+      {loading&&<p style={{margin:'10px 0 0',textAlign:'center',color:'#888',fontSize:13}}>⏳ Processando...</p>}
+    </div>
+    <LancamentoRapido onAdd={novos=>setTransacoes(prev=>[...prev,...novos])}/>
+    <div style={{display:'flex',gap:4,background:'#f5f5f5',borderRadius:12,padding:4,overflowX:'auto'}}>
+      <TabB id="resumo" label="📊 Resumo"/><TabB id="lancamentos" label="📋 Lançamentos"/>{nPend>0&&<TabB id="pendentes" label={`⚠️ Pendentes (${nPend})`}/>}
+    </div>
+    {aba==='resumo'&&(<div style={{display:'flex',flexDirection:'column',gap:10}}>
+      {Object.entries(porCat).sort((a,b)=>(b[1].saida+b[1].entrada)-(a[1].saida+a[1].entrada)).map(([cat,v])=>(<div key={cat} style={{background:'#fff',border:'1.5px solid #eee',borderRadius:12,padding:'12px 14px'}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}><span style={{fontWeight:700,fontSize:14}}>{cat}</span><span style={{fontSize:12,color:'#aaa'}}>{v.qtd}x</span></div><div style={{display:'flex',justifyContent:'space-between',fontSize:13}}>{v.entrada>0&&<span style={{color:'#2e7d32',fontWeight:700}}>↑ {fm(v.entrada)}</span>}{v.saida>0&&<span style={{color:'#b71c1c',fontWeight:700}}>↓ {fm(v.saida)}</span>}</div></div>))}
+    </div>)}
+    {(aba==='lancamentos'||aba==='pendentes')&&(<div style={{display:'flex',flexDirection:'column',gap:8}}>
+      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+        <select value={catFil} onChange={e=>setCatFil(e.target.value)} style={{...ip,flex:1,minWidth:160}}><option>Todas</option>{[...CATS_ENTRADA,...CATS_SAIDA,'Aplicação (ignorar)'].map(c=><option key={c}>{c}</option>)}</select>
+        <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13,cursor:'pointer',whiteSpace:'nowrap'}}><input type="checkbox" checked={pendFil} onChange={e=>setPendFil(e.target.checked)} style={{width:18,height:18,accentColor:'#c62828'}}/> Só pendentes</label>
+      </div>
+      <p style={{margin:0,fontSize:12,color:'#888'}}>{tFil.length} lançamento{tFil.length!==1?'s':''}</p>
+      {tFil.map(t=>(<div key={t.id} style={{background:t.confirmado?'#fff':t.conf==='sugerido'?'#fff8e1':'#fce4ec',border:'1.5px solid #eee',borderRadius:12,padding:'12px 14px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+          <div style={{flex:1}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:4}}>
+              <span style={{fontWeight:700,fontSize:14,color:t.tipo==='Entrada'?'#2e7d32':'#b71c1c'}}>{t.tipo==='Entrada'?'↑':'↓'} {fm(t.valor)}</span>
+              <span style={{fontSize:10,background:t.banco==='Santander'?'#e3f2fd':t.banco==='Nubank'?'#f3e5f5':'#f5f5f5',color:t.banco==='Santander'?'#1565c0':t.banco==='Nubank'?'#820ad1':'#555',padding:'2px 7px',borderRadius:10,fontWeight:700}}>{t.banco}</span>
+              <span style={{fontSize:10,background:'#f5f5f5',color:'#555',padding:'2px 7px',borderRadius:10}}>{fd(t.data)}</span>
+            </div>
+            <p style={{margin:'0 0 6px',fontSize:13,color:'#555'}}>{t.desc}</p>
+            {!t.confirmado?(<div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+              <span style={{fontSize:11,color:'#888'}}>Categoria:</span>
+              <select defaultValue={t.cat} onChange={e=>confirmar(t.id,e.target.value)} style={{border:'1.5px solid #ddd',borderRadius:8,padding:'4px 8px',fontSize:12,outline:'none',background:'#fff'}}>{(t.tipo==='Entrada'?CATS_ENTRADA:CATS_SAIDA).map(c=><option key={c}>{c}</option>)}</select>
+              <button onClick={()=>confirmar(t.id,t.cat)} style={{padding:'4px 10px',border:'none',borderRadius:8,background:'#43a047',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>✓ OK</button>
+            </div>):(<span style={{fontSize:11,background:'#e8f5e9',color:'#2e7d32',padding:'2px 8px',borderRadius:10,fontWeight:600}}>{t.cat}</span>)}
+          </div>
+          <button onClick={()=>remover(t.id)} style={{border:'none',background:'none',color:'#ddd',cursor:'pointer',fontSize:18,padding:'2px 6px',flexShrink:0}}>✕</button>
+        </div>
+      </div>))}
+    </div>)}
+  </div>);}
+// ═══════════════════════════════════════════════════
+function App(){
+  const[usuario,setUsuario]=useState(null);
   const[motos,setMotos]=useState([]);const[fin,setFin]=useState([]);const[contas,setContas]=useState([]);
   const[pessoas,setPessoas]=useState([]);const[empresas,setEmpresas]=useState([]);const[leads,setLeads]=useState([]);
+  const[banco,setBanco]=useState([]);
   const[tela,setTela]=useState("dashboard");const[edit,setEdit]=useState(null);
   const[busca,setBusca]=useState("");const[fst,setFst]=useState("Todos");
   const[load,setLoad]=useState(true);const[salv,setSalv]=useState(false);const[erro,setErro]=useState(null);
   const isMaster=usuario?.role==="master";
-  const carregarPerfil=async()=>{const{data:{session}}=await SB.auth.getSession();if(!session){setUsuario(null);setChecando(false);return;}const{data}=await SB.from("perfis").select("nome,role").eq("id",session.user.id).maybeSingle();if(!data){await SB.auth.signOut();alert("Este usuario ainda nao tem acesso ao sistema.");setUsuario(null);}else{setLoad(true);setUsuario(data);}setChecando(false);};
-  useEffect(()=>{carregarPerfil();},[]);
-  const sair=async()=>{await SB.auth.signOut();setUsuario(null);};
-  const baixarBackup=async()=>{const{data,error}=await SB.from("colecoes").select("nome,dados,atualizado_em");if(error){alert("Erro ao gerar backup.");return;}const b=new Blob([JSON.stringify({gerado_em:new Date().toISOString(),colecoes:data},null,1)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="PTK_backup_"+td()+".json";a.click();};
 
   useEffect(()=>{if(!usuario)return;async function init(){try{
     const[m,f,c,p,e,l]=await Promise.all([rb(BM),rb(BF),rb(BC),rb(BP),rb(BE),rb(BL)]);
     setMotos(m);setFin(f);setContas(c);setPessoas(p);setEmpresas(e);setLeads(l);
+    // Carregar bin de conciliação (ID salvo no localStorage)
+    const bkId=localStorage.getItem('ptk_bk_id');
+    if(bkId){BK=bkId;try{const k=await rb(BK);setBanco(k||[]);}catch{setBanco([]);}}else{setBanco([]);}
   }catch(er){setErro("Erro ao conectar.");}finally{setLoad(false);}}init();},[usuario]);
 
   const sm=async n=>{setSalv(true);setMotos(n);try{await wb(BM,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
+  const sk=async n=>{
+    setBanco(n);
+    try{
+      if(!BK){
+        // Criar novo bin na 1a vez
+        const r=await fetch("https://api.jsonbin.io/v3/b",{method:"POST",headers:{...HD,"X-Bin-Name":"ptk_banco_conciliacao","X-Bin-Private":"false"},body:JSON.stringify(n)});
+        const d=await r.json();
+        BK=d.metadata?.id||"";
+        if(BK)localStorage.setItem('ptk_bk_id',BK);
+      }else{await wb(BK,n);}
+    }catch(e){console.warn("Banco bin:",e);}
+  };
   const sf=async n=>{setSalv(true);setFin(n);try{await wb(BF,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
   const sc=async n=>{setSalv(true);setContas(n);try{await wb(BC,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
   const sp=async n=>{setSalv(true);setPessoas(n);try{await wb(BP,n);}catch{alert("Erro ao salvar.");}setSalv(false);};
@@ -1144,11 +1184,11 @@ function Leads({leads,onSave,pessoas}){
     {id:"leads",icon:"🎯",label:"Leads",badge:leadsAtivos,show:true},
     {id:"pessoas",icon:"👥",label:"Pessoas",badge:0,show:isMaster},
     {id:"empresas",icon:"🏢",label:"Empresas",badge:0,show:isMaster},
+    {id:"banco",icon:"🏦",label:"Banco",badge:0,show:isMaster},
     {id:"ia",icon:"🤖",label:"IA",badge:0,show:true}
   ].filter(n=>n.show);
 
-  if(checando)return(<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh"}}><p style={{color:"#c62828",fontWeight:700,fontSize:17}}>Carregando...</p></div>);
-  if(!usuario)return<Login onLogin={carregarPerfil}/>;
+  if(!usuario)return<Login onLogin={setUsuario}/>;
   if(load)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14}}><span style={{fontSize:48}}>🏍️</span><p style={{color:"#c62828",fontWeight:700,fontSize:17}}>Carregando...</p></div>);
   if(erro)return(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,padding:24,textAlign:"center"}}><span style={{fontSize:48}}>⚠️</span><p style={{color:"#c62828",fontWeight:700}}>{erro}</p><Btn onClick={()=>window.location.reload()} label="Tentar novamente"/></div>);
 
@@ -1158,9 +1198,7 @@ function Leads({leads,onSave,pessoas}){
       <div style={{display:"flex",gap:8,alignItems:"center"}}>
         {["dashboard","estoque"].includes(tela)&&<button onClick={()=>{setEdit(null);setTela("nova");}} style={{background:"#fff",color:"#c62828",border:"none",borderRadius:10,padding:"7px 14px",fontWeight:700,cursor:"pointer",fontSize:13}}>+ Moto</button>}
         {["nova","editar"].includes(tela)&&<button onClick={()=>{setTela("estoque");setEdit(null);}} style={{background:"rgba(255,255,255,0.2)",color:"#fff",border:"none",borderRadius:10,padding:"7px 14px",cursor:"pointer",fontSize:13,fontWeight:600}}>Voltar</button>}
-        {isMaster&&<a href="financeiro.html" style={{background:"#fff",color:"#2e7d32",borderRadius:10,padding:"7px 12px",fontWeight:700,fontSize:13,textDecoration:"none"}}>💵 Caixa</a>}
-        {isMaster&&<button onClick={baixarBackup} title="Baixar backup" style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:10,padding:"7px 10px",cursor:"pointer",fontSize:14}}>💾</button>}
-        <button onClick={sair} style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:10,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:600}}>Sair</button>
+        <button onClick={()=>setUsuario(null)} style={{background:"rgba(255,255,255,0.15)",color:"#fff",border:"none",borderRadius:10,padding:"7px 12px",cursor:"pointer",fontSize:12,fontWeight:600}}>Sair</button>
       </div>
     </div>
 
@@ -1191,6 +1229,7 @@ function Leads({leads,onSave,pessoas}){
       {tela==="pessoas"&&isMaster&&<Pessoas pessoas={pessoas} onSave={sp}/>}
       {tela==="empresas"&&isMaster&&<Empresas empresas={empresas} onSave={se}/>}
       {tela==="ia"&&<Ia motos={motos}/>}
+      {tela==="banco"&&isMaster&&<Conciliacao extratoSalvo={banco} onSalvar={sk}/>}
       {tela==="nova"&&(<div style={{background:"#fff",borderRadius:16,padding:20,border:"1.5px solid #eee"}}>
         <h2 style={{margin:"0 0 20px",fontSize:19}}>🏍️ Cadastrar Nova Moto</h2>
         <Mf onSave={savMoto} onCancel={()=>setTela("estoque")} usuario={usuario} pessoas={pessoas}/>
