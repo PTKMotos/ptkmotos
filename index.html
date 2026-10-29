@@ -1029,9 +1029,46 @@ function Leads({leads,onSave,pessoas}){
 // ═══════════════════════════════════════════════════
 const MESES_PT={'janeiro':1,'fevereiro':2,'março':3,'marco':3,'abril':4,'maio':5,'junho':6,'julho':7,'agosto':8,'setembro':9,'outubro':10,'novembro':11,'dezembro':12};
 function parseDateSantander(str){if(!str)return'';const m=String(str).toLowerCase().match(/(\d+)\s+de\s+(\w+)\s+de\s+(\d{4})/);if(!m)return'';const dia=m[1].padStart(2,'0');const mes=String(MESES_PT[m[2]]||1).padStart(2,'0');return`${m[3]}-${mes}-${dia}`;}
-function categorizarAuto(desc,valor,tipo){const d=(desc||'').toUpperCase();const v=Number(valor);if(tipo==='credito'){if(d.includes('PIX RECEBIDO')||d.includes('TED RECEBIDA')){if(v>=4000)return{cat:'Venda de Moto',conf:'sugerido'};return{cat:'Recebimento',conf:'sugerido'};}if(d.includes('RESGATE CONTAMAX')||d.includes('APLICACAO CONTAMAX'))return{cat:'Aplicação (ignorar)',conf:'auto'};return{cat:'Entrada',conf:'manual'};}else{if(d.includes('RESGATE CONTAMAX')||d.includes('APLICACAO CONTAMAX'))return{cat:'Aplicação (ignorar)',conf:'auto'};if(d.includes('PIX ENVIADO')||d.includes('PAGAMENTO A FORNECEDORES')){if(v>=4000&&v<=29500)return{cat:'Compra de Moto',conf:'sugerido'};if(v>=500&&v<=2500)return{cat:'Sinal de Compra',conf:'sugerido'};if(v>29500)return{cat:'PIX Alto (verificar)',conf:'manual'};return{cat:'PIX/Fornecedor',conf:'manual'};}if(d.includes('COMPRA CARTAO DEB MC'))return{cat:'Despesa Loja',conf:'auto'};if(d.includes('PAGAMENTO DE BOLETO'))return{cat:'Pagamento de Conta',conf:'auto'};if(d.includes('PAGAMENTO DE TRIBUTO')||d.includes('PAGAMENTO IPVA')||d.includes('PAGAMENTO DARF'))return{cat:'Impostos',conf:'auto'};if(d.includes('PAGAMENTO CARTAO')||d.includes('DEBITO AUT. FAT'))return{cat:'Cartão de Crédito',conf:'auto'};return{cat:'Saída',conf:'manual'};}}
+function categorizarAuto(desc,valor,tipo,banco){const d=(desc||'').toUpperCase();const v=Number(valor);
+if(d.includes('PW MOTOS BRASIL LTDA')||d.includes('PTK MOTOS COMPRA E VENDA'))return{cat:'Transferência Interna (ignorar)',conf:'auto'};
+if(tipo==='credito'){
+  if(d.includes('BANCO PAN'))return{cat:'Financiamento (Venda Moto)',conf:'sugerido'};
+  if(d.includes('PIX RECEBIDO')||d.includes('TED RECEBIDA')||d.includes('TRANSFERÊNCIA RECEBIDA')||d.includes('TRANSFERENCIA RECEBIDA')){if(v>=4000)return{cat:'Venda de Moto',conf:'sugerido'};return{cat:'Recebimento',conf:'sugerido'};}
+  if(d.includes('RESGATE CONTAMAX')||d.includes('APLICACAO CONTAMAX'))return{cat:'Aplicação (ignorar)',conf:'auto'};
+  if(d.includes('REEMBOLSO'))return{cat:'Reembolso',conf:'auto'};
+  return{cat:'Entrada',conf:'manual'};
+}else{
+  if(d.includes('RESGATE CONTAMAX')||d.includes('APLICACAO CONTAMAX')||d.includes('APLICAÇÃO RDB')||d.includes('APLICACAO RDB'))return{cat:'Aplicação (ignorar)',conf:'auto'};
+  if(d.includes('PIX ENVIADO')||d.includes('PAGAMENTO A FORNECEDORES')||d.includes('TRANSFERÊNCIA ENVIADA')||d.includes('TRANSFERENCIA ENVIADA')){
+    if(v>=4000&&v<=29500)return{cat:'Compra de Moto',conf:'sugerido'};
+    if(v>=500&&v<=2500)return{cat:'Sinal de Compra',conf:'sugerido'};
+    if(v>29500)return{cat:'PIX Alto (verificar)',conf:'manual'};
+    return{cat:'PIX/Fornecedor',conf:'manual'};
+  }
+  if(d.includes('COMPRA CARTAO DEB MC'))return{cat:'Despesa Loja',conf:'auto'};
+  if(d.includes('PAGAMENTO DE BOLETO')||d.includes('PAGAMENTO DE BOLETO EFETUADO'))return{cat:'Pagamento de Conta',conf:'auto'};
+  if(d.includes('PAGAMENTO DE TRIBUTO')||d.includes('PAGAMENTO IPVA')||d.includes('PAGAMENTO DARF')||d.includes('RECEITA FEDERAL')||d.includes('MINISTERIO DA JUSTICA'))return{cat:'Impostos',conf:'auto'};
+  if(d.includes('PAGAMENTO CARTAO')||d.includes('DEBITO AUT. FAT'))return{cat:'Cartão de Crédito',conf:'auto'};
+  if(d.includes('FACEBOOK')||d.includes('META '))return{cat:'Marketing/Anúncios',conf:'auto'};
+  if(d.includes('TELEFONICA')||d.includes('CLARO')||d.includes('TIM '))return{cat:'Telefone',conf:'auto'};
+  if(d.includes('WELLINGTON MENDES'))return{cat:'Retirada Sócios',conf:'auto'};
+  return{cat:'Saída',conf:'manual'};
+}}
 function lerExtratoSantander(dados){const tr=[];for(let i=7;i<dados.length;i++){const row=dados[i];const dataStr=row[0],desc=row[1],credito=row[2],debito=row[3];if(!dataStr||!desc)continue;const data=parseDateSantander(String(dataStr));if(!data)continue;if(credito&&Number(credito)>0){const{cat,conf}=categorizarAuto(desc,credito,'credito');tr.push({id:uid(),banco:'Santander',data,desc:String(desc),valor:Number(credito),tipo:'Entrada',cat,conf,confirmado:conf==='auto'});}if(debito&&Number(debito)>0){const{cat,conf}=categorizarAuto(desc,debito,'debito');tr.push({id:uid(),banco:'Santander',data,desc:String(desc),valor:Number(debito),tipo:'Saída',cat,conf,confirmado:conf==='auto'});}}return tr;}
-function lerExtratoNubank(texto){const linhas=texto.split('\n').filter(l=>l.trim());const tr=[];for(let i=1;i<linhas.length;i++){const cols=linhas[i].split(',');if(cols.length<4)continue;const[dataRaw,valorRaw,,descRaw]=cols;const data=(dataRaw||'').trim();const valor=Math.abs(parseFloat(valorRaw)||0);const desc=(descRaw||'').replace(/"/g,'').trim();if(!data||!valor)continue;const tipo=parseFloat(valorRaw)>=0?'Entrada':'Saída';const{cat,conf}=categorizarAuto(desc,valor,tipo==='Entrada'?'credito':'debito');tr.push({id:uid(),banco:'Nubank',data,desc,valor,tipo,cat,conf,confirmado:conf==='auto'});}return tr;}
+function parseDateNubank(str){if(!str)return'';const m=str.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!m)return'';return`${m[3]}-${m[2]}-${m[1]}`;}
+function lerExtratoNubank(texto){
+  const linhas=texto.split('\n').filter(l=>l.trim());const tr=[];
+  for(let i=1;i<linhas.length;i++){
+    const cols=[];let cur='',inQ=false;
+    for(const ch of linhas[i]){if(ch==='"'){inQ=!inQ;}else if(ch===','&&!inQ){cols.push(cur);cur='';}else{cur+=ch;}}cols.push(cur);
+    if(cols.length<4)continue;
+    const dataRaw=cols[0]||'';const valorRaw=cols[1]||'';const desc=(cols[3]||'').replace(/^"|"$/g,'').trim();
+    const data=parseDateNubank(dataRaw);const valorNum=parseFloat(valorRaw)||0;const valor=Math.abs(valorNum);
+    if(!data||!valor)continue;
+    const tipo=valorNum>=0?'Entrada':'Saída';
+    const{cat,conf}=categorizarAuto(desc,valor,tipo==='Entrada'?'credito':'debito','Nubank');
+    tr.push({id:uid(),banco:'Nubank',data,desc,valor,tipo,cat,conf,confirmado:conf==='auto'});
+  }return tr;}
 const CATS_SAIDA=['Compra de Moto','Sinal de Compra','Despesa Loja','Pagamento de Conta','Impostos','Cartão de Crédito','PIX/Fornecedor','PIX Alto (verificar)','Retirada Sócios','Salário','Outros'];
 const CATS_ENTRADA=['Venda de Moto','Recebimento','Transferência','Entrada','Outros'];
 function LancamentoRapido({onAdd}){
@@ -1066,7 +1103,7 @@ function Conciliacao({extratoSalvo,onSalvar}){
   const saidas=tMes.filter(t=>t.tipo==='Saída'&&t.cat!=='Aplicação (ignorar)').reduce((s,t)=>s+t.valor,0);
   const saldo=entradas-saidas;
   const nPend=transacoes.filter(t=>!t.confirmado).length;
-  const porCat={};tMes.filter(t=>t.cat!=='Aplicação (ignorar)').forEach(t=>{if(!porCat[t.cat])porCat[t.cat]={entrada:0,saida:0,qtd:0};if(t.tipo==='Entrada')porCat[t.cat].entrada+=t.valor;else porCat[t.cat].saida+=t.valor;porCat[t.cat].qtd++;});
+  const porCat={};tMes.filter(t=>t.cat!=='Aplicação (ignorar)'&&t.cat!=='Transferência Interna (ignorar)').forEach(t=>{if(!porCat[t.cat])porCat[t.cat]={entrada:0,saida:0,qtd:0};if(t.tipo==='Entrada')porCat[t.cat].entrada+=t.valor;else porCat[t.cat].saida+=t.valor;porCat[t.cat].qtd++;});
   const TabB=({id,label})=>(<button onClick={()=>setAba(id)} style={{padding:'9px 14px',border:'none',borderRadius:10,cursor:'pointer',fontSize:12,fontWeight:700,background:aba===id?'#c62828':'transparent',color:aba===id?'#fff':'#666',flex:1,whiteSpace:'nowrap'}}>{label}</button>);
   return(<div style={{display:'flex',flexDirection:'column',gap:14}}>
     <div style={{background:'linear-gradient(135deg,#1565c0,#0d47a1)',borderRadius:16,padding:20,color:'#fff'}}>
